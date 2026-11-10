@@ -5,6 +5,7 @@ import java.util.List;
 import com.teamnote.common.exception.ResourceNotFoundException;
 import com.teamnote.meeting.dto.MeetingCreateRequest;
 import com.teamnote.meeting.dto.MeetingResponse;
+import com.teamnote.meeting.dto.MeetingUpdateRequest;
 import com.teamnote.meeting.entity.Meeting;
 import com.teamnote.meeting.repository.MeetingRepository;
 import com.teamnote.project.entity.Project;
@@ -47,9 +48,26 @@ public class MeetingServiceImpl implements MeetingService {
 
     @Override
     public MeetingResponse findById(Long projectId, Long meetingId) {
-        Meeting meeting = meetingRepository.findByIdAndProject_Id(meetingId, projectId)
-                .orElseThrow(() -> new ResourceNotFoundException("회의를 찾을 수 없습니다."));
+        return toResponse(findMeeting(projectId, meetingId));
+    }
+
+    @Override
+    @Transactional
+    public MeetingResponse update(Long projectId, Long meetingId, MeetingUpdateRequest request) {
+        Meeting meeting = findMeeting(projectId, meetingId);
+        meeting.updateDetails(request.title(), request.startAt(), request.endAt(), request.minutesMarkdown());
         return toResponse(meeting);
+    }
+
+    @Override
+    @Transactional
+    public void delete(Long projectId, Long meetingId) {
+        meetingRepository.delete(findMeeting(projectId, meetingId));
+    }
+
+    private Meeting findMeeting(Long projectId, Long meetingId) {
+        return meetingRepository.findByIdAndProject_Id(meetingId, projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("회의를 찾을 수 없습니다."));
     }
 
     private MeetingResponse toResponse(Meeting meeting) {
