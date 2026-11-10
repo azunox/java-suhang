@@ -61,6 +61,16 @@ public class Task {
         if (project == null) {
             throw new InvalidRequestException("프로젝트는 필수입니다.");
         }
+        Task task = new Task();
+        task.project = project;
+        task.update(title, descriptionMarkdown, assigneeName, dueDate, status, now);
+        return task;
+    }
+
+    public void update(
+            String title, String descriptionMarkdown, String assigneeName,
+            LocalDate dueDate, TaskStatus status, LocalDateTime now
+    ) {
         if (title == null || title.isBlank() || title.length() > 120) {
             throw new InvalidRequestException("업무 제목은 필수이며 120자 이하여야 합니다.");
         }
@@ -71,15 +81,17 @@ public class Task {
             throw new InvalidRequestException("업무 설명·마감일·상태·처리 시각은 필수입니다.");
         }
 
-        Task task = new Task();
-        task.project = project;
-        task.title = title.strip();
-        task.descriptionMarkdown = descriptionMarkdown;
-        task.assigneeName = assigneeName.strip();
-        task.dueDate = dueDate;
-        task.status = status;
-        task.completedAt = status == TaskStatus.DONE ? now : null;
-        return task;
+        // DONE 유지 시 최초 완료 시각을 보존하고, 완료 해제 후 재진입하면 새 시각을 기록한다.
+        if (status != TaskStatus.DONE) {
+            completedAt = null;
+        } else if (this.status != TaskStatus.DONE) {
+            completedAt = now;
+        }
+        this.title = title.strip();
+        this.descriptionMarkdown = descriptionMarkdown;
+        this.assigneeName = assigneeName.strip();
+        this.dueDate = dueDate;
+        this.status = status;
     }
 
     public Long getId() {

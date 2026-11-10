@@ -9,6 +9,7 @@ import com.teamnote.project.entity.Project;
 import com.teamnote.project.repository.ProjectRepository;
 import com.teamnote.task.dto.TaskCreateRequest;
 import com.teamnote.task.dto.TaskResponse;
+import com.teamnote.task.dto.TaskUpdateRequest;
 import com.teamnote.task.entity.Task;
 import com.teamnote.task.repository.TaskRepository;
 import org.springframework.stereotype.Service;
@@ -52,6 +53,22 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public TaskResponse findById(Long projectId, Long taskId) {
         return toResponse(findTask(projectId, taskId));
+    }
+
+    @Override
+    @Transactional
+    public TaskResponse update(Long projectId, Long taskId, TaskUpdateRequest request) {
+        Task task = findTask(projectId, taskId);
+        LocalDateTime now = LocalDateTime.now(ZONE);
+        task.update(request.title(), request.descriptionMarkdown(), request.assigneeName(),
+                request.dueDate(), request.status(), now);
+        return toResponse(task);
+    }
+
+    @Override
+    @Transactional
+    public void delete(Long projectId, Long taskId) {
+        taskRepository.delete(findTask(projectId, taskId));
     }
 
     private Task findTask(Long projectId, Long taskId) {

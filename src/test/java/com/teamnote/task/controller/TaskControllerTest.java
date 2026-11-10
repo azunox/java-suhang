@@ -7,6 +7,7 @@ import com.teamnote.common.exception.GlobalExceptionHandler;
 import com.teamnote.common.exception.ResourceNotFoundException;
 import com.teamnote.task.dto.TaskCreateRequest;
 import com.teamnote.task.dto.TaskResponse;
+import com.teamnote.task.dto.TaskUpdateRequest;
 import com.teamnote.task.entity.TaskStatus;
 import com.teamnote.task.service.TaskService;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,10 +24,14 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -60,12 +65,25 @@ class TaskControllerTest {
                 .andExpect(jsonPath("$.data.completedAt").value(nullValue()));
     }
 
+    @Test
+    void updatesAndDeletesWithUnifiedResponse() throws Exception {
+        when(service.update(eq(1L), eq(10L), any(TaskUpdateRequest.class))).thenReturn(response());
+        mvc.perform(put(BASE + "/10").contentType(MediaType.APPLICATION_JSON).content(REQUEST))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.id").value(10));
+        mvc.perform(delete(BASE + "/10")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").value(nullValue()));
+        verify(service).delete(1L, 10L);
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"{}", "{\"title\":\" \"}",
             "{\"title\":\"업무\",\"descriptionMarkdown\":\"\",\"assigneeName\":\"담당자\",\"dueDate\":\"2026-02-30\",\"status\":\"TODO\"}",
             "{\"title\":\"업무\",\"descriptionMarkdown\":\"\",\"assigneeName\":\"담당자\",\"dueDate\":\"2026-11-10\",\"status\":\"UNKNOWN\"}"})
-    void rejectsInvalidCreateBodies(String body) throws Exception {
+    void rejectsInvalidCreateAndUpdateBodies(String body) throws Exception {
         mvc.perform(post(BASE).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
+        mvc.perform(put(BASE + "/10").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
         verifyNoInteractions(service);
     }
@@ -81,6 +99,8 @@ class TaskControllerTest {
         mvc.perform(post(BASE).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
+        mvc.perform(put(BASE + "/10").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest());
         verifyNoInteractions(service);
     }
 
@@ -89,10 +109,16 @@ class TaskControllerTest {
         when(service.create(eq(1L), any(TaskCreateRequest.class)))
                 .thenThrow(new ResourceNotFoundException("프로젝트를 찾을 수 없습니다."));
         when(service.findById(1L, 10L)).thenThrow(new ResourceNotFoundException("업무를 찾을 수 없습니다."));
+        when(service.update(eq(1L), eq(10L), any(TaskUpdateRequest.class)))
+                .thenThrow(new ResourceNotFoundException("업무를 찾을 수 없습니다."));
+        doThrow(new ResourceNotFoundException("업무를 찾을 수 없습니다.")).when(service).delete(1L, 10L);
         mvc.perform(post(BASE).contentType(MediaType.APPLICATION_JSON).content(REQUEST))
                 .andExpect(status().isNotFound());
         mvc.perform(get(BASE + "/10")).andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error.code").value("RESOURCE_NOT_FOUND"));
+        mvc.perform(put(BASE + "/10").contentType(MediaType.APPLICATION_JSON).content(REQUEST))
+                .andExpect(status().isNotFound());
+        mvc.perform(delete(BASE + "/10")).andExpect(status().isNotFound());
     }
 
     @ParameterizedTest
@@ -101,6 +127,7 @@ class TaskControllerTest {
         mvc.perform(get("/api/projects/" + id + "/tasks"))
                 .andExpect(status().isBadRequest());
         mvc.perform(get(BASE + "/" + id)).andExpect(status().isBadRequest());
+        mvc.perform(delete(BASE + "/" + id)).andExpect(status().isBadRequest());
         verifyNoInteractions(service);
     }
 

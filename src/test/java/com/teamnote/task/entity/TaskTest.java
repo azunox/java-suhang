@@ -34,10 +34,29 @@ class TaskTest {
     }
 
     @Test
-    void rejectsBlankTitleWhenCreatingTask() {
-        Project project = Project.create("프로젝트", "", DATE, DATE, ProjectStatus.PLANNED);
-        assertThatThrownBy(() -> Task.create(project, " ", MARKDOWN, "담당자", DATE,
-                TaskStatus.TODO, NOW)).isInstanceOf(InvalidRequestException.class);
+    void preservesClearsAndRecordsCompletionAcrossTransitions() {
+        Task task = create(TaskStatus.IN_PROGRESS);
+        task.update("업무", MARKDOWN, "담당자", DATE, TaskStatus.DONE, NOW.plusHours(1));
+        assertThat(task.getCompletedAt()).isEqualTo(NOW.plusHours(1));
+        task.update("변경 제목", MARKDOWN, "담당자", DATE, TaskStatus.DONE, NOW.plusHours(2));
+        assertThat(task.getCompletedAt()).isEqualTo(NOW.plusHours(1));
+        task.update("변경 제목", MARKDOWN, "담당자", DATE, TaskStatus.TODO, NOW.plusHours(3));
+        assertThat(task.getCompletedAt()).isNull();
+        task.update("변경 제목", MARKDOWN, "담당자", DATE, TaskStatus.DONE, NOW.plusHours(4));
+        assertThat(task.getCompletedAt()).isEqualTo(NOW.plusHours(4));
+    }
+
+    @Test
+    void invalidUpdateLeavesOriginalStateIntact() {
+        Task task = create(TaskStatus.DONE);
+
+        assertThatThrownBy(() -> task.update("새 제목", "변경", " ", DATE,
+                TaskStatus.TODO, NOW.plusHours(1))).isInstanceOf(InvalidRequestException.class);
+
+        assertThat(task.getTitle()).isEqualTo("업무");
+        assertThat(task.getDescriptionMarkdown()).isEqualTo(MARKDOWN);
+        assertThat(task.getStatus()).isEqualTo(TaskStatus.DONE);
+        assertThat(task.getCompletedAt()).isEqualTo(NOW);
     }
 
     private Task create(TaskStatus status) {

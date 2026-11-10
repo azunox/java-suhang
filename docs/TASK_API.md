@@ -1,16 +1,18 @@
-# 업무 등록·조회 API
+# 업무 CRUD API
 
-현재 커밋 범위는 업무 등록·프로젝트별 목록·상세 조회다.
+현재 구현 범위는 업무 등록·프로젝트별 목록·상세 조회·전체 수정·삭제다.
 
 | Method | Endpoint | 성공 상태 | 결과 |
 | --- | --- | --- | --- |
 | POST | `/api/projects/{projectId}/tasks` | 201 | TaskResponse |
 | GET | `/api/projects/{projectId}/tasks` | 200 | TaskResponse 배열 |
 | GET | `/api/projects/{projectId}/tasks/{taskId}` | 200 | TaskResponse |
+| PUT | `/api/projects/{projectId}/tasks/{taskId}` | 200 | TaskResponse |
+| DELETE | `/api/projects/{projectId}/tasks/{taskId}` | 200 | null |
 
-등록 필수 필드: title(공백 불가·최대 120자), descriptionMarkdown(null 불가·빈 문자열 허용), assigneeName(공백 불가·최대 80자), dueDate(ISO 날짜·과거 허용), status(TODO·IN_PROGRESS·DONE).
+등록·전체 수정 필수 필드: title(공백 불가·최대 120자), descriptionMarkdown(null 불가·빈 문자열 허용), assigneeName(공백 불가·최대 80자), dueDate(ISO 날짜·과거 허용), status(TODO·IN_PROGRESS·DONE).
 
-제목과 담당자 이름은 앞뒤 공백을 제거하고 Markdown 원문은 보존한다. DONE으로 등록하면 Asia/Seoul 처리 시각을 completedAt에 기록한다. 그 외 상태의 completedAt은 null이다.
+제목과 담당자 이름은 앞뒤 공백을 제거하고 Markdown 원문은 보존한다. DONE으로 등록하면 Asia/Seoul 처리 시각을 completedAt에 기록한다. 그 외 상태의 completedAt은 null이다. 수정 시 DONE 진입은 완료 시각을 기록하고, DONE 유지는 기존 시각을 보존한다. 완료 해제 시 비우며 재완료하면 새 시각을 기록한다. 수정·삭제도 업무 ID와 프로젝트 소속을 함께 제한한다.
 
 응답 필드: id, projectId, title, descriptionMarkdown, assigneeName, dueDate, status, completedAt. 기존 ApiResponse로 감싼다. 목록은 프로젝트 범위를 제한하고 dueDate ASC, id ASC로 정렬한다.
 
@@ -26,4 +28,4 @@ Service는 Mockito, Controller는 standalone MockMvc로 검증한다. 실제 DB 
 
 ## 후속 작업
 
-수정·삭제, 완료 상태 전이에 따른 시각 관리, 담당자·상태·마감일·기한 초과 JPQL 검색, DB 검증 및 Postman 결과는 후속 작업이다. 공통 Markdown Service 연결과 HTML 출력도 아직 포함하지 않는다.
+담당자·상태·마감일·기한 초과 JPQL 검색, DB 검증 및 Postman 결과는 후속 작업이다. 공통 Markdown Service 연결과 HTML 출력도 아직 포함하지 않는다.

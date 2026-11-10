@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.teamnote.task.dto.TaskCreateRequest;
 import com.teamnote.task.dto.TaskResponse;
+import com.teamnote.task.dto.TaskUpdateRequest;
 
 public interface TaskService {
 
@@ -13,4 +14,7 @@ public interface TaskService {
 
     TaskResponse findById(Long projectId, Long taskId);
 
+    TaskResponse update(Long projectId, Long taskId, TaskUpdateRequest request);
+
+    void delete(Long projectId, Long taskId);
 }
