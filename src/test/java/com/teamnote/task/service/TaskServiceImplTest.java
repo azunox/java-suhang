@@ -6,11 +6,13 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
+import com.teamnote.common.exception.InvalidRequestException;
 import com.teamnote.common.exception.ResourceNotFoundException;
 import com.teamnote.project.entity.Project;
 import com.teamnote.project.repository.ProjectRepository;
 import com.teamnote.task.dto.TaskCreateRequest;
 import com.teamnote.task.dto.TaskResponse;
+import com.teamnote.task.dto.TaskSearchRequest;
 import com.teamnote.task.dto.TaskUpdateRequest;
 import com.teamnote.task.entity.Task;
 import com.teamnote.task.entity.TaskStatus;
@@ -25,6 +27,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -115,10 +118,41 @@ class TaskServiceImplTest {
     }
 
     @Test
+    void normalizesAssigneeAndPassesAllSearchConditions() {
+        when(projectRepository.existsById(1L)).thenReturn(true);
+        when(project.getId()).thenReturn(1L);
+        when(taskRepository.search(eq(1L), eq("담당자"), eq(TaskStatus.TODO), eq(DATE), eq(DATE),
+                eq(false), any(LocalDate.class), eq(TaskStatus.DONE))).thenReturn(List.of(ownedTask()));
+
+        List<TaskResponse> results = service.findAll(1L,
+                new TaskSearchRequest(" 담당자 ", TaskStatus.TODO, DATE, DATE, false));
+
+        assertThat(results).extracting(TaskResponse::id).containsExactly(10L);
+    }
+
+    @Test
+    void blankAssigneeAndOmittedOverdueAreUnfilteredAndEmptyResultsAreAllowed() {
+        when(projectRepository.existsById(1L)).thenReturn(true);
+        when(taskRepository.search(eq(1L), eq(null), eq(null), eq(null), eq(null), eq(null),
+                any(LocalDate.class), eq(TaskStatus.DONE))).thenReturn(List.of());
+
+        assertThat(service.findAll(1L, new TaskSearchRequest("  ", null, null, null, null))).isEmpty();
+    }
+
+    @Test
+    void rejectsReversedDateRangeBeforeQuerying() {
+        assertThatThrownBy(() -> service.findAll(1L,
+                new TaskSearchRequest(null, null, DATE.plusDays(1), DATE, null)))
+                .isInstanceOf(InvalidRequestException.class);
+        verifyNoInteractions(taskRepository, projectRepository);
+    }
+
+    @Test
     void missingProjectIsNotHiddenAsEmptyList() {
         when(projectRepository.existsById(99L)).thenReturn(false);
 
-        assertThatThrownBy(() -> service.findAll(99L))
+        assertThatThrownBy(() -> service.findAll(99L,
+                new TaskSearchRequest(null, null, null, null, null)))
                 .isInstanceOf(ResourceNotFoundException.class);
         verifyNoInteractions(taskRepository);
     }
@@ -132,21 +166,6 @@ class TaskServiceImplTest {
         assertThat(result.id()).isEqualTo(10L);
         assertThat(result.projectId()).isEqualTo(1L);
         assertThat(result.title()).isEqualTo("업무");
-    }
-
-    @Test
-    void returnsProjectTasksInRepositoryDueDateAndIdOrder() {
-        when(projectRepository.existsById(1L)).thenReturn(true);
-        when(project.getId()).thenReturn(1L);
-        when(taskRepository.findByProject_IdOrderByDueDateAscIdAsc(1L)).thenReturn(List.of(ownedTask()));
-        assertThat(service.findAll(1L)).extracting(TaskResponse::id).containsExactly(10L);
-    }
-
-    @Test
-    void existingProjectWithoutTasksReturnsEmptyList() {
-        when(projectRepository.existsById(1L)).thenReturn(true);
-        when(taskRepository.findByProject_IdOrderByDueDateAscIdAsc(1L)).thenReturn(List.of());
-        assertThat(service.findAll(1L)).isEmpty();
     }
 
     private Task ownedTask() {

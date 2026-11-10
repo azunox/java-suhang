@@ -1,16 +1,20 @@
 package com.teamnote.task.service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 
+import com.teamnote.common.exception.InvalidRequestException;
 import com.teamnote.common.exception.ResourceNotFoundException;
 import com.teamnote.project.entity.Project;
 import com.teamnote.project.repository.ProjectRepository;
 import com.teamnote.task.dto.TaskCreateRequest;
 import com.teamnote.task.dto.TaskResponse;
+import com.teamnote.task.dto.TaskSearchRequest;
 import com.teamnote.task.dto.TaskUpdateRequest;
 import com.teamnote.task.entity.Task;
+import com.teamnote.task.entity.TaskStatus;
 import com.teamnote.task.repository.TaskRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,11 +45,24 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public List<TaskResponse> findAll(Long projectId) {
+    public List<TaskResponse> findAll(Long projectId, TaskSearchRequest request) {
+        if (request.dueDateFrom() != null && request.dueDateTo() != null
+                && request.dueDateFrom().isAfter(request.dueDateTo())) {
+            throw new InvalidRequestException("마감일 검색 시작일은 종료일보다 늦을 수 없습니다.");
+        }
         if (!projectRepository.existsById(projectId)) {
             throw new ResourceNotFoundException("프로젝트를 찾을 수 없습니다.");
         }
-        return taskRepository.findByProject_IdOrderByDueDateAscIdAsc(projectId).stream()
+        String assigneeName = request.assigneeName();
+        if (assigneeName != null) {
+            assigneeName = assigneeName.strip();
+            if (assigneeName.isEmpty()) {
+                assigneeName = null;
+            }
+        }
+        LocalDate today = LocalDate.now(ZONE);
+        return taskRepository.search(projectId, assigneeName, request.status(), request.dueDateFrom(),
+                        request.dueDateTo(), request.overdue(), today, TaskStatus.DONE).stream()
                 .map(this::toResponse)
                 .toList();
     }

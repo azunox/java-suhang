@@ -5,6 +5,7 @@ import java.util.List;
 import com.teamnote.common.response.ApiResponse;
 import com.teamnote.task.dto.TaskCreateRequest;
 import com.teamnote.task.dto.TaskResponse;
+import com.teamnote.task.dto.TaskSearchRequest;
 import com.teamnote.task.dto.TaskUpdateRequest;
 import com.teamnote.task.service.TaskService;
 import jakarta.validation.Valid;
@@ -13,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -41,9 +43,10 @@ public class TaskController {
 
     @GetMapping
     public ApiResponse<List<TaskResponse>> findAll(
-            @PathVariable @Positive Long projectId
+            @PathVariable @Positive Long projectId,
+            @Valid @ModelAttribute TaskSearchRequest request
     ) {
-        return ApiResponse.success(taskService.findAll(projectId));
+        return ApiResponse.success(taskService.findAll(projectId, request));
     }
 
     @GetMapping("/{taskId}")

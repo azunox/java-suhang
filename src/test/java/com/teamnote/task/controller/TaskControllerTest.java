@@ -4,9 +4,11 @@ import java.time.LocalDate;
 import java.util.List;
 
 import com.teamnote.common.exception.GlobalExceptionHandler;
+import com.teamnote.common.exception.InvalidRequestException;
 import com.teamnote.common.exception.ResourceNotFoundException;
 import com.teamnote.task.dto.TaskCreateRequest;
 import com.teamnote.task.dto.TaskResponse;
+import com.teamnote.task.dto.TaskSearchRequest;
 import com.teamnote.task.dto.TaskUpdateRequest;
 import com.teamnote.task.entity.TaskStatus;
 import com.teamnote.task.service.TaskService;
@@ -66,6 +68,19 @@ class TaskControllerTest {
     }
 
     @Test
+    void returnsDetailAndSearchResults() throws Exception {
+        when(service.findById(1L, 10L)).thenReturn(response());
+        when(service.findAll(eq(1L), any(TaskSearchRequest.class))).thenReturn(List.of(response()));
+        mvc.perform(get(BASE + "/10")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.title").value("업무"));
+        mvc.perform(get(BASE).param("assigneeName", "담당자").param("status", "TODO")
+                        .param("dueDateFrom", "2026-11-10").param("overdue", "false"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data[0].id").value(10));
+        verify(service).findAll(1L, new TaskSearchRequest("담당자", TaskStatus.TODO,
+                LocalDate.of(2026, 11, 10), null, false));
+    }
+
+    @Test
     void updatesAndDeletesWithUnifiedResponse() throws Exception {
         when(service.update(eq(1L), eq(10L), any(TaskUpdateRequest.class))).thenReturn(response());
         mvc.perform(put(BASE + "/10").contentType(MediaType.APPLICATION_JSON).content(REQUEST))
@@ -89,6 +104,14 @@ class TaskControllerTest {
     }
 
     @ParameterizedTest
+    @ValueSource(strings = {"status=UNKNOWN", "dueDateFrom=2026-02-30", "overdue=invalid"})
+    void rejectsMalformedSearchValues(String query) throws Exception {
+        mvc.perform(get(BASE + "?" + query)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
+        verifyNoInteractions(service);
+    }
+
+    @ParameterizedTest
     @ValueSource(strings = {" ", "longTitle", "longAssignee"})
     void rejectsBlankTitleAndOversizedNamesWithOtherwiseValidBody(String scenario) throws Exception {
         String body = switch (scenario) {
@@ -102,6 +125,22 @@ class TaskControllerTest {
         mvc.perform(put(BASE + "/10").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest());
         verifyNoInteractions(service);
+    }
+
+    @Test
+    void returnsEmptySearchResultAndRejectsOversizedSearchAssignee() throws Exception {
+        when(service.findAll(eq(1L), any(TaskSearchRequest.class))).thenReturn(List.of());
+        mvc.perform(get(BASE)).andExpect(status().isOk()).andExpect(jsonPath("$.data").isEmpty());
+        mvc.perform(get(BASE).param("assigneeName", "가".repeat(81)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void mapsReversedSearchRangeToBadRequest() throws Exception {
+        when(service.findAll(eq(1L), any(TaskSearchRequest.class)))
+                .thenThrow(new InvalidRequestException("검색 기간 오류"));
+        mvc.perform(get(BASE).param("dueDateFrom", "2026-11-20").param("dueDateTo", "2026-11-10"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
     }
 
     @Test
@@ -129,22 +168,6 @@ class TaskControllerTest {
         mvc.perform(get(BASE + "/" + id)).andExpect(status().isBadRequest());
         mvc.perform(delete(BASE + "/" + id)).andExpect(status().isBadRequest());
         verifyNoInteractions(service);
-    }
-
-    @Test
-    void returnsDetailAndProjectList() throws Exception {
-        when(service.findById(1L, 10L)).thenReturn(response());
-        when(service.findAll(1L)).thenReturn(List.of(response()));
-        mvc.perform(get(BASE + "/10")).andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.title").value("업무"));
-        mvc.perform(get(BASE)).andExpect(status().isOk())
-                .andExpect(jsonPath("$.data[0].id").value(10));
-    }
-
-    @Test
-    void returnsEmptyList() throws Exception {
-        when(service.findAll(1L)).thenReturn(List.of());
-        mvc.perform(get(BASE)).andExpect(status().isOk()).andExpect(jsonPath("$.data").isEmpty());
     }
 
     private TaskResponse response() {
