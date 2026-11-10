@@ -52,17 +52,21 @@ public class Meeting {
             LocalDateTime endAt,
             String minutesMarkdown
     ) {
+        Meeting meeting = new Meeting();
+        meeting.project = project;
+        meeting.updateDetails(title, startAt, endAt, minutesMarkdown);
+        return meeting;
+    }
+
+    public void updateDetails(String title, LocalDateTime startAt, LocalDateTime endAt, String minutesMarkdown) {
         if (startAt == null || endAt == null || !startAt.isBefore(endAt)) {
             throw new InvalidRequestException("회의 시작 시각은 종료 시각보다 빨라야 합니다.");
         }
 
-        Meeting meeting = new Meeting();
-        meeting.project = project;
-        meeting.title = title.strip();
-        meeting.startAt = startAt;
-        meeting.endAt = endAt;
-        meeting.minutesMarkdown = minutesMarkdown;
-        return meeting;
+        this.title = title.strip();
+        this.startAt = startAt;
+        this.endAt = endAt;
+        this.minutesMarkdown = minutesMarkdown;
     }
 
     public Long getId() {

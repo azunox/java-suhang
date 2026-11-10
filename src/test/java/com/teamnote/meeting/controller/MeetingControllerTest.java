@@ -3,6 +3,7 @@ package com.teamnote.meeting.controller;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.teamnote.common.exception.GlobalExceptionHandler;
 import com.teamnote.meeting.entity.Meeting;
@@ -24,10 +25,16 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -35,6 +42,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class MeetingControllerTest {
 
     private static final String MEETINGS_PATH = "/api/projects/{projectId}/meetings";
+    private static final String MEETING_PATH = MEETINGS_PATH + "/{meetingId}";
     private static final String VALID_REQUEST = """
             {
               "title": "  개발 점검  ",
@@ -187,5 +195,103 @@ class MeetingControllerTest {
                 .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
 
         verifyNoInteractions(meetingRepository);
+    }
+
+    @Test
+    void updatesAllMeetingFieldsAndReturnsUpdatedResponse() throws Exception {
+        when(project.getId()).thenReturn(1L);
+        when(meetingRepository.findByIdAndProject_Id(7L, 1L)).thenReturn(Optional.of(existingMeeting()));
+
+        mockMvc.perform(put(MEETING_PATH, 1, 7).contentType(MediaType.APPLICATION_JSON).content(VALID_REQUEST))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.error").value(nullValue()))
+                .andExpect(jsonPath("$.data.projectId").value(1))
+                .andExpect(jsonPath("$.data.title").value("개발 점검"))
+                .andExpect(jsonPath("$.data.startAt").value("2026-11-18T23:30:00"))
+                .andExpect(jsonPath("$.data.endAt").value("2026-11-19T00:30:00"))
+                .andExpect(jsonPath("$.data.minutesMarkdown").value("## 결정 사항\n\n기록  \n"));
+    }
+
+    @Test
+    void rejectsUpdateWithMissingRequiredFieldsBeforeLookup() throws Exception {
+        mockMvc.perform(put(MEETING_PATH, 1, 7).contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "개발 점검",
+                                  "startAt": "2026-11-18T23:30:00",
+                                  "endAt": "2026-11-19T00:30:00"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
+
+        verifyNoInteractions(projectRepository, meetingRepository);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"2026-11-18T23:30:00", "2026-11-18T23:29:59"})
+    void keepsExistingMeetingWhenUpdatedTimesAreInvalid(String endAt) throws Exception {
+        when(project.getId()).thenReturn(1L);
+        when(meetingRepository.findByIdAndProject_Id(7L, 1L)).thenReturn(Optional.of(existingMeeting()));
+
+        mockMvc.perform(put(MEETING_PATH, 1, 7).contentType(MediaType.APPLICATION_JSON)
+                        .content(VALID_REQUEST.replace("2026-11-19T00:30:00", endAt)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
+
+        mockMvc.perform(get(MEETING_PATH, 1, 7))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.title").value("기존 회의"))
+                .andExpect(jsonPath("$.data.startAt").value("2026-11-17T09:00:00"))
+                .andExpect(jsonPath("$.data.endAt").value("2026-11-17T10:00:00"))
+                .andExpect(jsonPath("$.data.minutesMarkdown").value("기존 회의록"));
+    }
+
+    @Test
+    void rejectsUpdateAndDeleteOutsideTheMeetingProject() throws Exception {
+        mockMvc.perform(put(MEETING_PATH, 2, 7).contentType(MediaType.APPLICATION_JSON).content(VALID_REQUEST))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("RESOURCE_NOT_FOUND"));
+
+        mockMvc.perform(delete(MEETING_PATH, 2, 7))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("RESOURCE_NOT_FOUND"));
+
+        verify(meetingRepository, times(2)).findByIdAndProject_Id(7L, 2L);
+        verifyNoMoreInteractions(meetingRepository);
+    }
+
+    @Test
+    void deletesMeetingAndReturnsNotFoundForSubsequentRequests() throws Exception {
+        Meeting meeting = existingMeeting();
+        AtomicReference<Meeting> storedMeeting = new AtomicReference<>(meeting);
+        when(meetingRepository.findByIdAndProject_Id(7L, 1L))
+                .thenAnswer(invocation -> Optional.ofNullable(storedMeeting.get()));
+        doAnswer(invocation -> {
+            storedMeeting.set(null);
+            return null;
+        }).when(meetingRepository).delete(meeting);
+
+        mockMvc.perform(delete(MEETING_PATH, 1, 7))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").value(nullValue()))
+                .andExpect(jsonPath("$.error").value(nullValue()));
+
+        mockMvc.perform(get(MEETING_PATH, 1, 7))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("RESOURCE_NOT_FOUND"));
+
+        mockMvc.perform(delete(MEETING_PATH, 1, 7))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("RESOURCE_NOT_FOUND"));
+
+        verify(meetingRepository).delete(meeting);
+    }
+
+    private Meeting existingMeeting() {
+        return Meeting.create(project, "기존 회의", LocalDateTime.parse("2026-11-17T09:00:00"),
+                LocalDateTime.parse("2026-11-17T10:00:00"), "기존 회의록");
     }
 }
