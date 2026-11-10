@@ -2,6 +2,7 @@ package com.teamnote.meeting.entity;
 
 import java.time.LocalDateTime;
 
+import com.teamnote.common.exception.InvalidRequestException;
 import com.teamnote.project.entity.Project;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -42,6 +43,26 @@ public class Meeting {
     private String minutesMarkdown;
 
     protected Meeting() {
+    }
+
+    public static Meeting create(
+            Project project,
+            String title,
+            LocalDateTime startAt,
+            LocalDateTime endAt,
+            String minutesMarkdown
+    ) {
+        if (startAt == null || endAt == null || !startAt.isBefore(endAt)) {
+            throw new InvalidRequestException("회의 시작 시각은 종료 시각보다 빨라야 합니다.");
+        }
+
+        Meeting meeting = new Meeting();
+        meeting.project = project;
+        meeting.title = title.strip();
+        meeting.startAt = startAt;
+        meeting.endAt = endAt;
+        meeting.minutesMarkdown = minutesMarkdown;
+        return meeting;
     }
 
     public Long getId() {
