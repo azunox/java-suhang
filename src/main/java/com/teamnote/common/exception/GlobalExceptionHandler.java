@@ -21,6 +21,21 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    @ExceptionHandler(InvalidRequestException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInvalidRequest(InvalidRequestException exception) {
+        return domainErrorResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleResourceNotFound(ResourceNotFoundException exception) {
+        return domainErrorResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ApiResponse<Void>> handleConflict(ConflictException exception) {
+        return domainErrorResponse(HttpStatus.CONFLICT, exception.getMessage());
+    }
+
     @Override
     protected ResponseEntity<Object> handleExceptionInternal(
             Exception exception,
@@ -45,6 +60,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         log.error("처리하지 못한 요청 오류가 발생했습니다.", exception);
         ApiError error = new ApiError("INTERNAL_SERVER_ERROR", "서버 내부 오류가 발생했습니다.", List.of());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.failure(error));
+    }
+
+    private ResponseEntity<ApiResponse<Void>> domainErrorResponse(HttpStatus status, String message) {
+        ApiError error = new ApiError(errorCode(status.value()), message, List.of());
+        return ResponseEntity.status(status).body(ApiResponse.failure(error));
     }
 
     private String errorCode(int status) {
