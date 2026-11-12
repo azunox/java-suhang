@@ -17,7 +17,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Sort;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -70,20 +69,19 @@ class ProjectServiceImplTest {
 
     @Test
     void returnsProjectDtosUsingDatabaseIdOrder() {
-        Sort sort = Sort.by(Sort.Direction.ASC, "id");
         List<Project> projects = List.of(storedProject(1L, "첫 프로젝트"), storedProject(2L, "두 번째 프로젝트"));
-        when(projectRepository.findAll(sort)).thenReturn(projects);
+        when(projectRepository.findAllProjects()).thenReturn(projects);
 
         List<ProjectResponse> responses = projectService.findAll();
 
         assertThat(responses).extracting(ProjectResponse::id).containsExactly(1L, 2L);
         assertThat(responses).extracting(ProjectResponse::name).containsExactly("첫 프로젝트", "두 번째 프로젝트");
-        verify(projectRepository).findAll(sort);
+        verify(projectRepository).findAllProjects();
     }
 
     @Test
     void returnsEmptyListWhenNoProjectsExist() {
-        when(projectRepository.findAll(Sort.by(Sort.Direction.ASC, "id"))).thenReturn(List.of());
+        when(projectRepository.findAllProjects()).thenReturn(List.of());
 
         assertThat(projectService.findAll()).isEmpty();
     }
@@ -91,7 +89,7 @@ class ProjectServiceImplTest {
     @Test
     void returnsExistingProject() {
         Project project = storedProject(1L, "프로젝트");
-        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(projectRepository.findProjectById(1L)).thenReturn(Optional.of(project));
 
         ProjectResponse response = projectService.findById(1L);
 
@@ -101,7 +99,7 @@ class ProjectServiceImplTest {
 
     @Test
     void rejectsMissingProject() {
-        when(projectRepository.findById(999L)).thenReturn(Optional.empty());
+        when(projectRepository.findProjectById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> projectService.findById(999L))
                 .isInstanceOf(ResourceNotFoundException.class)

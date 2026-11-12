@@ -7,7 +7,6 @@ import com.teamnote.project.dto.ProjectCreateRequest;
 import com.teamnote.project.dto.ProjectResponse;
 import com.teamnote.project.entity.Project;
 import com.teamnote.project.repository.ProjectRepository;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,14 +35,14 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     public List<ProjectResponse> findAll() {
-        return projectRepository.findAll(Sort.by(Sort.Direction.ASC, "id")).stream()
+        return projectRepository.findAllProjects().stream()
                 .map(this::toResponse)
                 .toList();
     }
 
     @Override
     public ProjectResponse findById(Long projectId) {
-        Project project = projectRepository.findById(projectId)
+        Project project = projectRepository.findProjectById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("프로젝트를 찾을 수 없습니다."));
         return toResponse(project);
     }
