@@ -1,0 +1,1016 @@
+{
+  "info": {
+    "name": "TEAMNOTE Meetings",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const body = pm.response.json();",
+          "pm.test(\"공통 응답 JSON\", () => {",
+          "    pm.expect(body).to.have.all.keys(\"success\", \"data\", \"error\");",
+          "    pm.expect(body.success).to.eql(pm.response.code < 400);",
+          "    if (body.success) {",
+          "        pm.expect(body.error).to.eql(null);",
+          "    } else {",
+          "        pm.expect(body.data).to.eql(null);",
+          "        pm.expect(body.error.fields).to.be.an(\"array\");",
+          "    }",
+          "});",
+          "if (pm.response.code >= 400) {",
+          "  const codes = {400:\"INVALID_REQUEST\",404:\"RESOURCE_NOT_FOUND\",409:\"CONFLICT\"};",
+          "  if (codes[pm.response.code]) pm.test(\"공통 오류 코드\", () => pm.expect(body.error.code).to.eql(codes[pm.response.code]));",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "준비 · 프로젝트",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/projects",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\": \"회의 검증\", \"descriptionMarkdown\": \"\", \"startDate\": \"2026-11-01\", \"endDate\": \"2026-11-30\", \"status\": \"IN_PROGRESS\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "if (pm.response.code === 201) pm.collectionVariables.set(\"bProjectId\", body.data.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "준비 · 다른 프로젝트",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/projects",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\": \"회의 검증 다른 소속\", \"descriptionMarkdown\": \"\", \"startDate\": \"2026-11-01\", \"endDate\": \"2026-11-30\", \"status\": \"IN_PROGRESS\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "if (pm.response.code === 201) pm.collectionVariables.set(\"bOtherProjectId\", body.data.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "등록 · Markdown 회의",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"title\": \"  API 회의  \", \"startAt\": \"2026-11-19T10:00:00\", \"endAt\": \"2026-11-19T11:00:00\", \"minutesMarkdown\": \"# 회의록\\n\\n| 담당 | 작업 |\\n| --- | --- |\\n| B | 검색 검증 |\\n\\n- 결정 사항\\n\\n```java\\nint count = 1;\\n```\\n\\n[문서](https://example.com)\\n[위험](javascript:alert(1))\\n<script>alert(1)</script>\\n<img src=x onerror=alert(1)>\\n\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.test(\"\\uc81c\\ubaa9 \\uc815\\uaddc\\ud654\", () => { pm.expect(body.data.title).to.eql(\"API 회의\"); });",
+              "pm.test(\"\\uc6d0\\ubb38 \\ubcf4\\uc874\", () => { pm.expect(body.data.minutesMarkdown).to.eql(\"# \\ud68c\\uc758\\ub85d\\n\\n| \\ub2f4\\ub2f9 | \\uc791\\uc5c5 |\\n| --- | --- |\\n| B | \\uac80\\uc0c9 \\uac80\\uc99d |\\n\\n- \\uacb0\\uc815 \\uc0ac\\ud56d\\n\\n```java\\nint count = 1;\\n```\\n\\n[\\ubb38\\uc11c](https://example.com)\\n[\\uc704\\ud5d8](javascript:alert(1))\\n<script>alert(1)</script>\\n<img src=x onerror=alert(1)>\\n\"); });",
+              "pm.test(\"\\ud45c\\u00b7\\ucf54\\ub4dc\\u00b7\\uc81c\\ubaa9\\u00b7\\uc548\\uc804 \\ub9c1\\ud06c \\ubcf4\\uc874 \\ubc0f \\uc704\\ud5d8 \\uc694\\uc18c \\uc81c\\ud55c\", () => { const html = body.data.minutesHtml; pm.expect(html).to.include(\"<table>\"); pm.expect(html).to.include(\"<code>\"); pm.expect(html).to.include(\"<h1>\"); pm.expect(html).to.include(\"https://example.com\"); const dom = require(\"cheerio\").load(html); pm.expect(dom(\"script, img, [onerror], [onclick]\").length).to.eql(0); dom(\"a\").each((index, element) => pm.expect(dom(element).attr(\"href\") || \"\").not.to.match(/^javascript:/i)); });",
+              "if (pm.response.code === 201) pm.collectionVariables.set(\"bMeetingId\", body.data.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "상세 · HTML",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/{{bMeetingId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"\\ud45c\\u00b7\\ucf54\\ub4dc\\u00b7\\uc81c\\ubaa9\\u00b7\\uc548\\uc804 \\ub9c1\\ud06c \\ubcf4\\uc874 \\ubc0f \\uc704\\ud5d8 \\uc694\\uc18c \\uc81c\\ud55c\", () => { const html = body.data.minutesHtml; pm.expect(html).to.include(\"<table>\"); pm.expect(html).to.include(\"<code>\"); pm.expect(html).to.include(\"<h1>\"); pm.expect(html).to.include(\"https://example.com\"); const dom = require(\"cheerio\").load(html); pm.expect(dom(\"script, img, [onerror], [onclick]\").length).to.eql(0); dom(\"a\").each((index, element) => pm.expect(dom(element).attr(\"href\") || \"\").not.to.match(/^javascript:/i)); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "목록 · HTML",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"\\ub4f1\\ub85d ID\\uc640 HTML\", () => { pm.expect(body.data).to.have.length(1); pm.expect(body.data[0].id).to.eql(Number(pm.collectionVariables.get(\"bMeetingId\"))); pm.expect(body.data[0].minutesHtml).to.include(\"<table>\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "준비 · 끝 경계",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"title\": \"끝 경계\", \"startAt\": \"2026-11-19T09:00:00\", \"endAt\": \"2026-11-19T10:00:00\", \"minutesMarkdown\": \"\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "if (pm.response.code === 201) pm.collectionVariables.set(\"bboundaryEnd\", body.data.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "준비 · 시작 걸침",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"title\": \"시작 걸침\", \"startAt\": \"2026-11-19T09:30:00\", \"endAt\": \"2026-11-19T10:30:00\", \"minutesMarkdown\": \"\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "if (pm.response.code === 201) pm.collectionVariables.set(\"bcrossStart\", body.data.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "준비 · 종료 걸침",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"title\": \"종료 걸침\", \"startAt\": \"2026-11-19T10:30:00\", \"endAt\": \"2026-11-19T11:30:00\", \"minutesMarkdown\": \"\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "if (pm.response.code === 201) pm.collectionVariables.set(\"bcrossEnd\", body.data.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "준비 · 전체 포함",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"title\": \"전체 포함\", \"startAt\": \"2026-11-19T09:00:00\", \"endAt\": \"2026-11-19T12:00:00\", \"minutesMarkdown\": \"\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "if (pm.response.code === 201) pm.collectionVariables.set(\"benclosing\", body.data.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "준비 · 시작 경계",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"title\": \"시작 경계\", \"startAt\": \"2026-11-19T11:00:00\", \"endAt\": \"2026-11-19T12:00:00\", \"minutesMarkdown\": \"\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "if (pm.response.code === 201) pm.collectionVariables.set(\"bboundaryStart\", body.data.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "검색 · 양쪽 경계",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings?from=2026-11-19T10:00:00&to=2026-11-19T11:00:00"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"\\uacb9\\uce68\\u00b7\\uc815\\ub82c\\u00b7\\ub9de\\ub2ff\\uc740 \\uacbd\\uacc4 \\uc81c\\uc678\", () => { pm.expect(body.data.map(m => m.title)).to.eql([\"전체 포함\",\"시작 걸침\",\"API 회의\",\"종료 걸침\"]); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "검색 · from만",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings?from=2026-11-19T11:30:00"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"\\uc2dc\\uc791 \\ud558\\ud55c\", () => { pm.expect(body.data.map(m => m.title)).to.eql([\"전체 포함\",\"시작 경계\"]); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "검색 · to만",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings?to=2026-11-19T09:30:00"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"\\uc885\\ub8cc \\uc0c1\\ud55c\", () => { pm.expect(body.data.map(m => m.title)).to.eql([\"끝 경계\",\"전체 포함\"]); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "검색 · 빈 결과",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings?from=2026-11-19T12:00:00"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"\\ube48 \\ubc30\\uc5f4\", () => { pm.expect(body.data).to.eql([]); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "검색 · 다른 소속 제외",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/projects/{{bOtherProjectId}}/meetings"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"\\ube48 \\ubc30\\uc5f4\", () => { pm.expect(body.data).to.eql([]); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "실패 · 동일 검색 시각",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings?from=2026-11-19T10:00:00&to=2026-11-19T10:00:00"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+              "const body = pm.response.json();"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "실패 · 검색 형식",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings?from=wrong"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+              "const body = pm.response.json();"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "실패 · 검색 offset",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings?from=2026-11-19T10:00:00Z"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+              "const body = pm.response.json();"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "실패 · 없는 프로젝트",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/projects/9223372036854775807/meetings"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+              "const body = pm.response.json();"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "실패 · 다른 소속 상세",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/projects/{{bOtherProjectId}}/meetings/{{bMeetingId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+              "const body = pm.response.json();"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "실패 · 다른 소속 수정",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/projects/{{bOtherProjectId}}/meetings/{{bMeetingId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"title\": \"  API 회의  \", \"startAt\": \"2026-11-19T10:00:00\", \"endAt\": \"2026-11-19T11:00:00\", \"minutesMarkdown\": \"# 회의록\\n\\n| 담당 | 작업 |\\n| --- | --- |\\n| B | 검색 검증 |\\n\\n- 결정 사항\\n\\n```java\\nint count = 1;\\n```\\n\\n[문서](https://example.com)\\n[위험](javascript:alert(1))\\n<script>alert(1)</script>\\n<img src=x onerror=alert(1)>\\n\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+              "const body = pm.response.json();"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "실패 · 다른 소속 삭제",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/api/projects/{{bOtherProjectId}}/meetings/{{bMeetingId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+              "const body = pm.response.json();"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "실패 · 필수값 누락",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/{{bMeetingId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+              "const body = pm.response.json();"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "실패 · 동일 회의 시각",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/{{bMeetingId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"title\": \"실패 제목\", \"startAt\": \"2026-11-19T10:00:00\", \"endAt\": \"2026-11-19T10:00:00\", \"minutesMarkdown\": \"# 회의록\\n\\n| 담당 | 작업 |\\n| --- | --- |\\n| B | 검색 검증 |\\n\\n- 결정 사항\\n\\n```java\\nint count = 1;\\n```\\n\\n[문서](https://example.com)\\n[위험](javascript:alert(1))\\n<script>alert(1)</script>\\n<img src=x onerror=alert(1)>\\n\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+              "const body = pm.response.json();"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "실패 뒤 원본 보존",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/{{bMeetingId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"\\uc6d0\\ubcf8 \\uc81c\\ubaa9\\u00b7\\uc2dc\\uac01\\u00b7\\uc6d0\\ubb38 \\ubcf4\\uc874\", () => { pm.expect(body.data.title).to.eql(\"API 회의\"); pm.expect(body.data.startAt).to.eql(\"2026-11-19T10:00:00\"); pm.expect(body.data.endAt).to.eql(\"2026-11-19T11:00:00\"); pm.expect(body.data.minutesMarkdown).to.eql(\"# \\ud68c\\uc758\\ub85d\\n\\n| \\ub2f4\\ub2f9 | \\uc791\\uc5c5 |\\n| --- | --- |\\n| B | \\uac80\\uc0c9 \\uac80\\uc99d |\\n\\n- \\uacb0\\uc815 \\uc0ac\\ud56d\\n\\n```java\\nint count = 1;\\n```\\n\\n[\\ubb38\\uc11c](https://example.com)\\n[\\uc704\\ud5d8](javascript:alert(1))\\n<script>alert(1)</script>\\n<img src=x onerror=alert(1)>\\n\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "실패 · 시각 배열",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"title\": \"  API 회의  \", \"startAt\": [2026, 11, 19, 10, 0, 0], \"endAt\": \"2026-11-19T11:00:00\", \"minutesMarkdown\": \"# 회의록\\n\\n| 담당 | 작업 |\\n| --- | --- |\\n| B | 검색 검증 |\\n\\n- 결정 사항\\n\\n```java\\nint count = 1;\\n```\\n\\n[문서](https://example.com)\\n[위험](javascript:alert(1))\\n<script>alert(1)</script>\\n<img src=x onerror=alert(1)>\\n\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+              "const body = pm.response.json();"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "실패 · 빈 제목",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"title\": \" \", \"startAt\": \"2026-11-19T10:00:00\", \"endAt\": \"2026-11-19T11:00:00\", \"minutesMarkdown\": \"# 회의록\\n\\n| 담당 | 작업 |\\n| --- | --- |\\n| B | 검색 검증 |\\n\\n- 결정 사항\\n\\n```java\\nint count = 1;\\n```\\n\\n[문서](https://example.com)\\n[위험](javascript:alert(1))\\n<script>alert(1)</script>\\n<img src=x onerror=alert(1)>\\n\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+              "const body = pm.response.json();"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "실패 · 삭제 경로 ID",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/0"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+              "const body = pm.response.json();"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "삭제 제한 · 하위 회의 존재",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+              "const body = pm.response.json();"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "수정 · 날짜 넘김·빈 회의록",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/{{bMeetingId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"title\": \"  밤 회의  \", \"startAt\": \"2026-11-19T23:30:00\", \"endAt\": \"2026-11-20T00:30:00\", \"minutesMarkdown\": \"\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"\\uc804\\uccb4 \\uc218\\uc815 \\ubc0f \\ube48 HTML\", () => { pm.expect(body.data.title).to.eql(\"밤 회의\"); pm.expect(body.data.minutesHtml).to.eql(\"\"); pm.expect(body.data.minutesMarkdown).to.eql(\"\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "수정 · HTML 재생성",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/{{bMeetingId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"title\": \"변경 회의\", \"startAt\": \"2026-11-19T10:00:00\", \"endAt\": \"2026-11-19T11:00:00\", \"minutesMarkdown\": \"# 회의록\\n\\n| 담당 | 작업 |\\n| --- | --- |\\n| B | 검색 검증 |\\n\\n- 결정 사항\\n\\n```java\\nint count = 1;\\n```\\n\\n[문서](https://example.com)\\n[위험](javascript:alert(1))\\n<script>alert(1)</script>\\n<img src=x onerror=alert(1)>\\n\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"\\ud45c\\u00b7\\ucf54\\ub4dc\\u00b7\\uc81c\\ubaa9\\u00b7\\uc548\\uc804 \\ub9c1\\ud06c \\ubcf4\\uc874 \\ubc0f \\uc704\\ud5d8 \\uc694\\uc18c \\uc81c\\ud55c\", () => { const html = body.data.minutesHtml; pm.expect(html).to.include(\"<table>\"); pm.expect(html).to.include(\"<code>\"); pm.expect(html).to.include(\"<h1>\"); pm.expect(html).to.include(\"https://example.com\"); const dom = require(\"cheerio\").load(html); pm.expect(dom(\"script, img, [onerror], [onclick]\").length).to.eql(0); dom(\"a\").each((index, element) => pm.expect(dom(element).attr(\"href\") || \"\").not.to.match(/^javascript:/i)); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "삭제 · 정상",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/{{bMeetingId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"\\uc0ad\\uc81c \\uacf5\\ud1b5 \\uc751\\ub2f5\", () => { pm.expect(body.data).to.eql(null); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "삭제 · 상세 재조회",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/{{bMeetingId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+              "const body = pm.response.json();"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "삭제 · 재삭제",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/{{bMeetingId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+              "const body = pm.response.json();"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "정리 · bboundaryEnd",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/{{bboundaryEnd}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "정리 · bcrossStart",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/{{bcrossStart}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "정리 · bcrossEnd",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/{{bcrossEnd}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "정리 · benclosing",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/{{benclosing}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "정리 · bboundaryStart",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/{{bboundaryStart}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "정리 · 프로젝트",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/api/projects/{{bProjectId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "정리 · 다른 프로젝트",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/api/projects/{{bOtherProjectId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -320,6 +320,15 @@ class MeetingControllerTest {
         verifyNoInteractions(projectRepository, meetingRepository);
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"2026-11-19T10:00:00Z", "2026-11-19T10:00:00+09:00", "2026-02-30T10:00:00"})
+    void rejectsOffsetAndInvalidCalendarSearchDates(String from) throws Exception {
+        mockMvc.perform(get(MEETINGS_PATH, 1).param("from", from))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
+        verifyNoInteractions(projectRepository, meetingRepository);
+    }
+
     @Test
     void returnsRenderedAndSanitizedHtmlWithOriginalMarkdown() throws Exception {
         String markdown = """

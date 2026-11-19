@@ -1,0 +1,269 @@
+{
+  "executedAt": "2026-11-19T13:42:48.351927+09:00",
+  "baseUrl": "http://127.0.0.1:18082",
+  "source": "Java 21 / Spring Boot 4.1.1 / local H2, actual HTTP via Python urllib",
+  "requests": [
+    {
+      "name": "프로젝트 준비",
+      "method": "POST",
+      "path": "/api/projects",
+      "request": {
+        "name": "보고서 근거",
+        "descriptionMarkdown": "",
+        "startDate": "2026-11-19",
+        "endDate": "2026-11-20",
+        "status": "PLANNED"
+      },
+      "status": 201,
+      "expectedStatus": 201,
+      "response": {
+        "success": true,
+        "data": {
+          "id": 17,
+          "name": "보고서 근거",
+          "descriptionMarkdown": "",
+          "descriptionHtml": "",
+          "startDate": "2026-11-19",
+          "endDate": "2026-11-20",
+          "status": "PLANNED"
+        },
+        "error": null
+      }
+    },
+    {
+      "name": "다른 소속 준비",
+      "method": "POST",
+      "path": "/api/projects",
+      "request": {
+        "name": "보고서 다른 소속",
+        "descriptionMarkdown": "",
+        "startDate": "2026-11-19",
+        "endDate": "2026-11-20",
+        "status": "PLANNED"
+      },
+      "status": 201,
+      "expectedStatus": 201,
+      "response": {
+        "success": true,
+        "data": {
+          "id": 18,
+          "name": "보고서 다른 소속",
+          "descriptionMarkdown": "",
+          "descriptionHtml": "",
+          "startDate": "2026-11-19",
+          "endDate": "2026-11-20",
+          "status": "PLANNED"
+        },
+        "error": null
+      }
+    },
+    {
+      "name": "회의 등록",
+      "method": "POST",
+      "path": "/api/projects/17/meetings",
+      "request": {
+        "title": "  주간 점검  ",
+        "startAt": "2026-11-19T09:30:00",
+        "endAt": "2026-11-19T10:30:00",
+        "minutesMarkdown": "# 회의록\n\n| 담당 | 작업 |\n| --- | --- |\n| B | 검색 |\n\n<script>alert(1)</script>"
+      },
+      "status": 201,
+      "expectedStatus": 201,
+      "response": {
+        "success": true,
+        "data": {
+          "id": 32,
+          "projectId": 17,
+          "title": "주간 점검",
+          "startAt": "2026-11-19T09:30:00",
+          "endAt": "2026-11-19T10:30:00",
+          "minutesMarkdown": "# 회의록\n\n| 담당 | 작업 |\n| --- | --- |\n| B | 검색 |\n\n<script>alert(1)</script>",
+          "minutesHtml": "<h1>회의록</h1>\n<table>\n <thead>\n  <tr>\n   <th>담당</th>\n   <th>작업</th>\n  </tr>\n </thead>\n <tbody>\n  <tr>\n   <td>B</td>\n   <td>검색</td>\n  </tr>\n </tbody>\n</table>\n<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>"
+        },
+        "error": null
+      }
+    },
+    {
+      "name": "기간 겹침 검색",
+      "method": "GET",
+      "path": "/api/projects/17/meetings?from=2026-11-19T10:00:00&to=2026-11-19T11:00:00",
+      "request": null,
+      "status": 200,
+      "expectedStatus": 200,
+      "response": {
+        "success": true,
+        "data": [
+          {
+            "id": 32,
+            "projectId": 17,
+            "title": "주간 점검",
+            "startAt": "2026-11-19T09:30:00",
+            "endAt": "2026-11-19T10:30:00",
+            "minutesMarkdown": "# 회의록\n\n| 담당 | 작업 |\n| --- | --- |\n| B | 검색 |\n\n<script>alert(1)</script>",
+            "minutesHtml": "<h1>회의록</h1>\n<table>\n <thead>\n  <tr>\n   <th>담당</th>\n   <th>작업</th>\n  </tr>\n </thead>\n <tbody>\n  <tr>\n   <td>B</td>\n   <td>검색</td>\n  </tr>\n </tbody>\n</table>\n<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>"
+          }
+        ],
+        "error": null
+      }
+    },
+    {
+      "name": "다른 소속 상세",
+      "method": "GET",
+      "path": "/api/projects/18/meetings/32",
+      "request": null,
+      "status": 404,
+      "expectedStatus": 404,
+      "response": {
+        "success": false,
+        "data": null,
+        "error": {
+          "code": "RESOURCE_NOT_FOUND",
+          "message": "회의를 찾을 수 없습니다.",
+          "fields": []
+        }
+      }
+    },
+    {
+      "name": "잘못된 수정",
+      "method": "PUT",
+      "path": "/api/projects/17/meetings/32",
+      "request": {
+        "title": "실패",
+        "startAt": "2026-11-19T09:30:00",
+        "endAt": "2026-11-19T09:30:00",
+        "minutesMarkdown": "# 회의록\n\n| 담당 | 작업 |\n| --- | --- |\n| B | 검색 |\n\n<script>alert(1)</script>"
+      },
+      "status": 400,
+      "expectedStatus": 400,
+      "response": {
+        "success": false,
+        "data": null,
+        "error": {
+          "code": "INVALID_REQUEST",
+          "message": "회의 시작 시각은 종료 시각보다 빨라야 합니다.",
+          "fields": []
+        }
+      }
+    },
+    {
+      "name": "잘못된 수정 후 원본",
+      "method": "GET",
+      "path": "/api/projects/17/meetings/32",
+      "request": null,
+      "status": 200,
+      "expectedStatus": 200,
+      "response": {
+        "success": true,
+        "data": {
+          "id": 32,
+          "projectId": 17,
+          "title": "주간 점검",
+          "startAt": "2026-11-19T09:30:00",
+          "endAt": "2026-11-19T10:30:00",
+          "minutesMarkdown": "# 회의록\n\n| 담당 | 작업 |\n| --- | --- |\n| B | 검색 |\n\n<script>alert(1)</script>",
+          "minutesHtml": "<h1>회의록</h1>\n<table>\n <thead>\n  <tr>\n   <th>담당</th>\n   <th>작업</th>\n  </tr>\n </thead>\n <tbody>\n  <tr>\n   <td>B</td>\n   <td>검색</td>\n  </tr>\n </tbody>\n</table>\n<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>"
+        },
+        "error": null
+      }
+    },
+    {
+      "name": "회의 정상 수정",
+      "method": "PUT",
+      "path": "/api/projects/17/meetings/32",
+      "request": {
+        "title": "변경된 회의",
+        "startAt": "2026-11-19T09:30:00",
+        "endAt": "2026-11-19T10:30:00",
+        "minutesMarkdown": "# 회의록\n\n| 담당 | 작업 |\n| --- | --- |\n| B | 검색 |\n\n<script>alert(1)</script>"
+      },
+      "status": 200,
+      "expectedStatus": 200,
+      "response": {
+        "success": true,
+        "data": {
+          "id": 32,
+          "projectId": 17,
+          "title": "변경된 회의",
+          "startAt": "2026-11-19T09:30:00",
+          "endAt": "2026-11-19T10:30:00",
+          "minutesMarkdown": "# 회의록\n\n| 담당 | 작업 |\n| --- | --- |\n| B | 검색 |\n\n<script>alert(1)</script>",
+          "minutesHtml": "<h1>회의록</h1>\n<table>\n <thead>\n  <tr>\n   <th>담당</th>\n   <th>작업</th>\n  </tr>\n </thead>\n <tbody>\n  <tr>\n   <td>B</td>\n   <td>검색</td>\n  </tr>\n </tbody>\n</table>\n<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>"
+        },
+        "error": null
+      }
+    },
+    {
+      "name": "하위 회의 삭제 제한",
+      "method": "DELETE",
+      "path": "/api/projects/17",
+      "request": null,
+      "status": 409,
+      "expectedStatus": 409,
+      "response": {
+        "success": false,
+        "data": null,
+        "error": {
+          "code": "CONFLICT",
+          "message": "업무 또는 회의가 남아 있는 프로젝트는 삭제할 수 없습니다.",
+          "fields": []
+        }
+      }
+    },
+    {
+      "name": "회의 삭제",
+      "method": "DELETE",
+      "path": "/api/projects/17/meetings/32",
+      "request": null,
+      "status": 200,
+      "expectedStatus": 200,
+      "response": {
+        "success": true,
+        "data": null,
+        "error": null
+      }
+    },
+    {
+      "name": "삭제 후 조회",
+      "method": "GET",
+      "path": "/api/projects/17/meetings/32",
+      "request": null,
+      "status": 404,
+      "expectedStatus": 404,
+      "response": {
+        "success": false,
+        "data": null,
+        "error": {
+          "code": "RESOURCE_NOT_FOUND",
+          "message": "회의를 찾을 수 없습니다.",
+          "fields": []
+        }
+      }
+    },
+    {
+      "name": "프로젝트 정리",
+      "method": "DELETE",
+      "path": "/api/projects/17",
+      "request": null,
+      "status": 200,
+      "expectedStatus": 200,
+      "response": {
+        "success": true,
+        "data": null,
+        "error": null
+      }
+    },
+    {
+      "name": "다른 소속 정리",
+      "method": "DELETE",
+      "path": "/api/projects/18",
+      "request": null,
+      "status": 200,
+      "expectedStatus": 200,
+      "response": {
+        "success": true,
+        "data": null,
+        "error": null
+      }
+    }
+  ]
+}

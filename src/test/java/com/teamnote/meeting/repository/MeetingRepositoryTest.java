@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.test.context.jdbc.Sql;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -79,6 +80,15 @@ class MeetingRepositoryTest {
         Long id = meetings.search(project.getId(), null, null).getFirst().getId();
         assertThat(meetings.findByIdAndProject_Id(id, project.getId())).isPresent();
         assertThat(meetings.findByIdAndProject_Id(id, otherProject.getId())).isEmpty();
+    }
+
+    @Test
+    @Sql(scripts = "file:docs/evidence/member-b-meetings.sql")
+    void executesHandoffSqlAndFindsExpectedOverlapRows() {
+        Project fixture = projects.search("%B 회의 검색 검증%", null).getFirst();
+        assertThat(meetings.search(fixture.getId(), at(10, 0), at(11, 0)))
+                .extracting(Meeting::getTitle)
+                .containsExactly("전체 포함", "시작 걸침", "동일 구간", "종료 걸침");
     }
 
     private void save(Project owner, String title, int startHour, int startMinute, int endHour, int endMinute) {

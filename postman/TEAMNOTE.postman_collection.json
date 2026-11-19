@@ -1,0 +1,2570 @@
+{
+  "info": {
+    "name": "TEAMNOTE",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Projects·Content Preview는 팀장 자료, Tasks는 팀원 A 전달 자료를 보존하여 통합. Meetings는 팀원 B 작성."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const body = pm.response.json();",
+          "pm.test(\"공통 응답 JSON\", () => {",
+          "    pm.expect(body).to.have.all.keys(\"success\", \"data\", \"error\");",
+          "    pm.expect(body.success).to.eql(pm.response.code < 400);",
+          "    if (body.success) {",
+          "        pm.expect(body.error).to.eql(null);",
+          "    } else {",
+          "        pm.expect(body.data).to.eql(null);",
+          "        pm.expect(body.error.fields).to.be.an(\"array\");",
+          "    }",
+          "});",
+          "if (pm.response.code >= 400) {",
+          "  const codes = {400:\"INVALID_REQUEST\",404:\"RESOURCE_NOT_FOUND\",409:\"CONFLICT\"};",
+          "  if (codes[pm.response.code]) pm.test(\"공통 오류 코드\", () => pm.expect(body.error.code).to.eql(codes[pm.response.code]));",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Content Preview",
+      "item": [
+        {
+          "name": "Markdown 미리보기",
+          "item": [
+            {
+              "name": "표가 포함된 Markdown 미리보기",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"헤더와 표 렌더링\", () => { const html = pm.response.json().data.html; pm.expect(html).to.include(\"<h1>TEAMNOTE</h1>\"); pm.expect(html).to.include(\"<table>\"); });",
+                      "if (pm.response.code === 200) { pm.collectionVariables.set(\"leaderPreviewHtml\", pm.response.json().data.html); }"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/content/preview",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"markdown\": \"# TEAMNOTE\\n\\n| 담당 | 작업 |\\n| --- | --- |\\n| 팀장 | 프로젝트 |\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "빈 Markdown 미리보기",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"빈 HTML\", () => { pm.expect(pm.response.json().data.html).to.eql(\"\"); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/content/preview",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"markdown\": \"\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "Markdown 누락",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                      "pm.test(\"INVALID_REQUEST\", () => { pm.expect(pm.response.json().error.code).to.eql(\"INVALID_REQUEST\"); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/content/preview",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "item": [
+        {
+          "name": "프로젝트 등록·조회·검색·수정",
+          "item": [
+            {
+              "name": "기간이 뒤집힌 프로젝트 등록",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                      "pm.test(\"INVALID_REQUEST\", () => { pm.expect(pm.response.json().error.code).to.eql(\"INVALID_REQUEST\"); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/projects",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"실패 검증\",\n  \"descriptionMarkdown\": \"# TEAMNOTE\\n\\n| 담당 | 작업 |\\n| --- | --- |\\n| 팀장 | 프로젝트 |\",\n  \"startDate\": \"2026-11-20\",\n  \"endDate\": \"2026-11-19\",\n  \"status\": \"PLANNED\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "프로젝트 등록",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.collectionVariables.set(\"leaderRun\", String(Date.now()));",
+                      "pm.collectionVariables.unset(\"leaderProjectId\");",
+                      "pm.collectionVariables.unset(\"leaderTaskId\");",
+                      "pm.collectionVariables.unset(\"leaderMeetingId\");"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                      "if (pm.response.code === 201) { pm.collectionVariables.set(\"leaderProjectId\", String(pm.response.json().data.id)); }",
+                      "pm.test(\"이름 정규화·같은 날짜 허용·HTML 일치\", () => { const data = pm.response.json().data; pm.expect(data.id).to.be.a(\"number\"); pm.expect(data.name).to.eql(\"Postman \" + pm.collectionVariables.get(\"leaderRun\") + \"_%!\"); pm.expect(data.startDate).to.eql(data.endDate); pm.expect(data.descriptionHtml).to.eql(pm.collectionVariables.get(\"leaderPreviewHtml\")); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/projects",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"  Postman {{leaderRun}}_%!  \",\n  \"descriptionMarkdown\": \"# TEAMNOTE\\n\\n| 담당 | 작업 |\\n| --- | --- |\\n| 팀장 | 프로젝트 |\",\n  \"startDate\": \"2026-11-19\",\n  \"endDate\": \"2026-11-19\",\n  \"status\": \"PLANNED\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "프로젝트 전체 목록",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"생성된 프로젝트 조회\", () => { pm.expect(pm.response.json().data.map(project => String(project.id))).to.include(pm.collectionVariables.get(\"leaderProjectId\")); });",
+                      "pm.test(\"ID 오름차순\", () => { const ids = pm.response.json().data.map(project => project.id); pm.expect(ids).to.eql([...ids].sort((a, b) => a - b)); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/projects"
+              }
+            },
+            {
+              "name": "프로젝트 상세",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"동적 ID 일치\", () => { pm.expect(String(pm.response.json().data.id)).to.eql(pm.collectionVariables.get(\"leaderProjectId\")); });",
+                      "pm.test(\"미리보기와 같은 HTML\", () => { pm.expect(pm.response.json().data.descriptionHtml).to.eql(pm.collectionVariables.get(\"leaderPreviewHtml\")); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/projects/{{leaderProjectId}}"
+              }
+            },
+            {
+              "name": "이름·상태 복합 검색",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"생성된 프로젝트 조회\", () => { pm.expect(pm.response.json().data.map(project => String(project.id))).to.include(pm.collectionVariables.get(\"leaderProjectId\")); });",
+                      "pm.test(\"일치하는 프로젝트 한 건\", () => { pm.expect(pm.response.json().data).to.have.lengthOf(1); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/projects?name=postman%20{{leaderRun}}&status=PLANNED"
+              }
+            },
+            {
+              "name": "LIKE 특수 문자 검색",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"특수 문자가 포함된 프로젝트만 검색\", () => { const ids = pm.response.json().data.map(project => String(project.id)); pm.expect(ids).to.eql([pm.collectionVariables.get(\"leaderProjectId\")]); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/projects?name={{leaderRun}}_%25%21"
+              }
+            },
+            {
+              "name": "조건 불일치",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"빈 배열\", () => { pm.expect(pm.response.json().data).to.eql([]); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/projects?name=postman%20{{leaderRun}}&status=COMPLETED"
+              }
+            },
+            {
+              "name": "빈 상태로 검색",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                      "pm.test(\"INVALID_REQUEST\", () => { pm.expect(pm.response.json().error.code).to.eql(\"INVALID_REQUEST\"); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/projects?status="
+              }
+            },
+            {
+              "name": "프로젝트 전체 수정",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"동적 ID 일치\", () => { pm.expect(String(pm.response.json().data.id)).to.eql(pm.collectionVariables.get(\"leaderProjectId\")); });",
+                      "pm.test(\"수정 값과 원문·HTML 유지\", () => { const data = pm.response.json().data; pm.expect(data.status).to.eql(\"IN_PROGRESS\"); pm.expect(data.name).to.eql(\"Postman \" + pm.collectionVariables.get(\"leaderRun\") + \" 수정\"); pm.expect(data.descriptionMarkdown).to.eql(\"## 수정\\n\"); pm.expect(data.descriptionHtml).to.eql(\"<h2>수정</h2>\"); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/projects/{{leaderProjectId}}",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman {{leaderRun}} 수정\",\n  \"descriptionMarkdown\": \"## 수정\\n\",\n  \"startDate\": \"2026-11-19\",\n  \"endDate\": \"2026-11-19\",\n  \"status\": \"IN_PROGRESS\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "기간이 뒤집힌 프로젝트 수정",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                      "pm.test(\"INVALID_REQUEST\", () => { pm.expect(pm.response.json().error.code).to.eql(\"INVALID_REQUEST\"); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/projects/{{leaderProjectId}}",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman {{leaderRun}} 수정\",\n  \"descriptionMarkdown\": \"## 수정\\n\",\n  \"startDate\": \"2026-11-20\",\n  \"endDate\": \"2026-11-19\",\n  \"status\": \"IN_PROGRESS\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "잘못된 수정 후 상세 재조회",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"동적 ID 일치\", () => { pm.expect(String(pm.response.json().data.id)).to.eql(pm.collectionVariables.get(\"leaderProjectId\")); });",
+                      "pm.test(\"수정 값과 원문·HTML 유지\", () => { const data = pm.response.json().data; pm.expect(data.status).to.eql(\"IN_PROGRESS\"); pm.expect(data.name).to.eql(\"Postman \" + pm.collectionVariables.get(\"leaderRun\") + \" 수정\"); pm.expect(data.descriptionMarkdown).to.eql(\"## 수정\\n\"); pm.expect(data.descriptionHtml).to.eql(\"<h2>수정</h2>\"); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/projects/{{leaderProjectId}}"
+              }
+            }
+          ]
+        },
+        {
+          "name": "프로젝트 삭제 제한과 정리",
+          "item": [
+            {
+              "name": "완료 업무 생성",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                      "if (pm.response.code === 201) { pm.collectionVariables.set(\"leaderTaskId\", String(pm.response.json().data.id)); }"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/projects/{{leaderProjectId}}/tasks",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"삭제 제한 확인\",\n  \"descriptionMarkdown\": \"\",\n  \"assigneeName\": \"팀장\",\n  \"dueDate\": \"2026-11-10\",\n  \"status\": \"DONE\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "과거 회의 생성",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                      "if (pm.response.code === 201) { pm.collectionVariables.set(\"leaderMeetingId\", String(pm.response.json().data.id)); }"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/projects/{{leaderProjectId}}/meetings",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"삭제 제한 확인\",\n  \"minutesMarkdown\": \"\",\n  \"startAt\": \"2026-11-10T10:00:00\",\n  \"endAt\": \"2026-11-10T11:00:00\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "업무·회의가 남은 프로젝트 삭제 거절",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+                      "pm.test(\"CONFLICT\", () => { pm.expect(pm.response.json().error.code).to.eql(\"CONFLICT\"); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/api/projects/{{leaderProjectId}}"
+              }
+            },
+            {
+              "name": "완료 업무가 보존됨",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"동적 ID 일치\", () => { pm.expect(String(pm.response.json().data.id)).to.eql(pm.collectionVariables.get(\"leaderTaskId\")); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/projects/{{leaderProjectId}}/tasks/{{leaderTaskId}}"
+              }
+            },
+            {
+              "name": "과거 회의가 보존됨",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"동적 ID 일치\", () => { pm.expect(String(pm.response.json().data.id)).to.eql(pm.collectionVariables.get(\"leaderMeetingId\")); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/projects/{{leaderProjectId}}/meetings/{{leaderMeetingId}}"
+              }
+            },
+            {
+              "name": "완료 업무 정리",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"삭제 응답 data가 null\", () => { pm.expect(pm.response.json().data).to.eql(null); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/api/projects/{{leaderProjectId}}/tasks/{{leaderTaskId}}"
+              }
+            },
+            {
+              "name": "회의가 남은 프로젝트 삭제 거절",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+                      "pm.test(\"CONFLICT\", () => { pm.expect(pm.response.json().error.code).to.eql(\"CONFLICT\"); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/api/projects/{{leaderProjectId}}"
+              }
+            },
+            {
+              "name": "과거 회의 정리",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"삭제 응답 data가 null\", () => { pm.expect(pm.response.json().data).to.eql(null); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/api/projects/{{leaderProjectId}}/meetings/{{leaderMeetingId}}"
+              }
+            },
+            {
+              "name": "하위 데이터가 없는 프로젝트 삭제",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "pm.test(\"삭제 응답 data가 null\", () => { pm.expect(pm.response.json().data).to.eql(null); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": "{{baseUrl}}/api/projects/{{leaderProjectId}}"
+              }
+            },
+            {
+              "name": "삭제한 프로젝트 조회",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                      "pm.test(\"RESOURCE_NOT_FOUND\", () => { pm.expect(pm.response.json().error.code).to.eql(\"RESOURCE_NOT_FOUND\"); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/api/projects/{{leaderProjectId}}"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get(\"today\")) {",
+              "  const day = 86400000; const now = Date.now() + 9 * 3600000;",
+              "  for (const [key, offset] of [[\"yesterday\",-1],[\"today\",0],[\"tomorrow\",1]]) {",
+              "    pm.collectionVariables.set(key, new Date(now + offset * day).toISOString().slice(0,10));",
+              "  }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "item": [
+        {
+          "name": "준비 / 업무 프로젝트",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"A 업무 API 검증\", \"descriptionMarkdown\": \"# 검증용 프로젝트\", \"startDate\": \"2026-11-09\", \"endDate\": \"2026-11-30\", \"status\": \"IN_PROGRESS\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(true));",
+                  "pm.collectionVariables.set(\"projectId\", body.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "준비 / 다른 프로젝트",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"A 소속 제외 검증\", \"descriptionMarkdown\": \"# 검증용 프로젝트\", \"startDate\": \"2026-11-09\", \"endDate\": \"2026-11-30\", \"status\": \"IN_PROGRESS\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(true));",
+                  "pm.collectionVariables.set(\"otherProjectId\", body.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "등록 / 지난 미완료",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"지난 미완료\", \"descriptionMarkdown\": \"# 업무\", \"assigneeName\": \"팀원 A\", \"dueDate\": \"{{yesterday}}\", \"status\": \"TODO\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(true));",
+                  "pm.collectionVariables.set(\"lateId\", body.data.id);",
+                  "pm.test(\"HTML 변환\", () => { pm.expect(body.data.descriptionHtml).to.eql(\"<h1>업무</h1>\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "등록 / 지난 완료",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"지난 완료\", \"descriptionMarkdown\": \"# 업무\", \"assigneeName\": \"팀원 A\", \"dueDate\": \"{{yesterday}}\", \"status\": \"DONE\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(true));",
+                  "pm.collectionVariables.set(\"doneId\", body.data.id);",
+                  "pm.test(\"HTML 변환\", () => { pm.expect(body.data.descriptionHtml).to.eql(\"<h1>업무</h1>\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "등록 / 오늘 마감",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"오늘 마감\", \"descriptionMarkdown\": \"# 업무\", \"assigneeName\": \"팀원 A\", \"dueDate\": \"{{today}}\", \"status\": \"TODO\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(true));",
+                  "pm.collectionVariables.set(\"todayId\", body.data.id);",
+                  "pm.test(\"HTML 변환\", () => { pm.expect(body.data.descriptionHtml).to.eql(\"<h1>업무</h1>\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "등록 / 미래 마감",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"미래 마감\", \"descriptionMarkdown\": \"# 업무\", \"assigneeName\": \"팀원 A\", \"dueDate\": \"{{tomorrow}}\", \"status\": \"IN_PROGRESS\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(true));",
+                  "pm.collectionVariables.set(\"futureId\", body.data.id);",
+                  "pm.test(\"HTML 변환\", () => { pm.expect(body.data.descriptionHtml).to.eql(\"<h1>업무</h1>\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "등록 / 다른 소속",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects/{{otherProjectId}}/tasks",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"다른 소속\", \"descriptionMarkdown\": \"# 업무\", \"assigneeName\": \"팀원 A\", \"dueDate\": \"{{yesterday}}\", \"status\": \"TODO\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(true));",
+                  "pm.collectionVariables.set(\"foreignId\", body.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "검색 / overdue 생략",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(true));",
+                  "pm.test(\"네 업무만 조회\", () => { pm.expect(body.data.length).to.eql(4); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "검색 / overdue=true",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks?overdue=true"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(true));",
+                  "pm.test(\"지난 미완료만 조회\", () => { pm.expect(body.data.map(t=>t.id)).to.eql([Number(pm.collectionVariables.get(\"lateId\"))]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "검색 / overdue=false",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks?overdue=false"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(true));",
+                  "pm.test(\"지난 완료·오늘·미래 조회\", () => { pm.expect(body.data.length).to.eql(3); pm.expect(body.data.map(t=>t.title)).to.eql([\"지난 완료\",\"오늘 마감\",\"미래 마감\"]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "검색 / 조합과 날짜 양쪽 경계",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks?assigneeName=%ED%8C%80%EC%9B%90%20A&status=TODO&dueDateFrom={{yesterday}}&dueDateTo={{today}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(true));",
+                  "pm.test(\"경계 포함 AND 조건\", () => { pm.expect(body.data.map(t=>t.title)).to.eql([\"지난 미완료\",\"오늘 마감\"]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "검색 / 빈 결과",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks?assigneeName=Nobody"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(true));",
+                  "pm.test(\"빈 배열\", () => { pm.expect(body.data).to.eql([]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "검색 / 잘못된 기간",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks?dueDateFrom={{tomorrow}}&dueDateTo={{today}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(false));",
+                  "pm.test(\"입력 오류 코드\", () => { pm.expect(body.error.code).to.eql(\"INVALID_REQUEST\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "검색 / 잘못된 enum",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks?status=UNKNOWN"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "소속 / 상세 차단",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks/{{foreignId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "소속 / 수정 차단",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks/{{foreignId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"불가\", \"descriptionMarkdown\": \"# 업무\", \"assigneeName\": \"팀원 A\", \"dueDate\": \"{{today}}\", \"status\": \"TODO\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "소속 / 삭제 차단",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks/{{foreignId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "실패 / 필수값 누락",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "기술 / 표·코드·HTML 정제",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks/{{todayId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"오늘 마감\", \"descriptionMarkdown\": \"| 항목 | 내용 |\\n| --- | --- |\\n| 담당 | A |\\n\\n```java\\nint count = 1;\\n```\\n\\n<script>alert(1)</script>\\n\\n[위험](javascript:alert(1))\\n\\n[정상](https://example.com)\", \"assigneeName\": \"팀원 A\", \"dueDate\": \"{{today}}\", \"status\": \"TODO\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(true));",
+                  "pm.test(\"표·코드 유지와 위험 링크 제거\", () => { const h=body.data.descriptionHtml; pm.expect(h).to.include(\"<table>\"); pm.expect(h).to.include(\"<code>\"); pm.expect(h).not.to.include(\"<script>\"); pm.expect(h).not.to.include(\"javascript:\"); pm.expect(h).to.include(\"https://example.com\"); });",
+                  "pm.test(\"원문 보존\", () => { pm.expect(body.data.descriptionMarkdown).to.include(\"<script>\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "완료 / 최초 DONE 진입",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks/{{todayId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"오늘 마감\", \"descriptionMarkdown\": \"# 업무\", \"assigneeName\": \"팀원 A\", \"dueDate\": \"{{today}}\", \"status\": \"DONE\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(true));",
+                  "pm.test(\"완료 시각 기록\", () => { pm.expect(body.data.completedAt).to.be.a(\"string\"); pm.collectionVariables.set(\"completedAt\", body.data.completedAt); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "완료 / DONE 유지",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks/{{todayId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"오늘 마감\", \"descriptionMarkdown\": \"# 업무\", \"assigneeName\": \"팀원 A\", \"dueDate\": \"{{today}}\", \"status\": \"DONE\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(true));",
+                  "pm.test(\"완료 시각 보존\", () => { pm.expect(body.data.completedAt).to.eql(pm.collectionVariables.get(\"completedAt\")); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "완료 / 완료 해제",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks/{{todayId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"오늘 마감\", \"descriptionMarkdown\": \"# 업무\", \"assigneeName\": \"팀원 A\", \"dueDate\": \"{{today}}\", \"status\": \"TODO\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(true));",
+                  "pm.test(\"완료 시각 비움\", () => { pm.expect(body.data.completedAt).to.eql(null); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "상세 / 수정 후 재조회",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks/{{todayId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(true));",
+                  "pm.test(\"DB 저장 결과\", () => { pm.expect(body.data.status).to.eql(\"TODO\"); pm.expect(body.data.completedAt).to.eql(null); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "삭제 / 업무 삭제",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks/{{todayId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(true));",
+                  "pm.test(\"삭제 응답\", () => { pm.expect(body.data).to.eql(null); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "삭제 / 재조회 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks/{{todayId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "SQL / 통합 초기 데이터 확인",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/1/tasks"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(true));",
+                  "pm.test(\"다른 팀원 데이터와 표 샘플 유지\", () => { pm.expect(body.data.some(t=>t.assigneeName===\"팀장\")).to.eql(true); pm.expect(body.data.some(t=>t.assigneeName===\"팀원 B\")).to.eql(true); pm.expect(body.data.some(t=>t.descriptionHtml.includes(\"<table>\"))).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "정리 / lateId",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks/{{lateId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "정리 / doneId",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks/{{doneId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "정리 / futureId",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks/{{futureId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "정리 / foreignId",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{otherProjectId}}/tasks/{{foreignId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "통합 정리 · 업무 프로젝트",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "통합 정리 · 다른 업무 프로젝트",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{otherProjectId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Meetings",
+      "item": [
+        {
+          "name": "준비 · 프로젝트",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"회의 검증\", \"descriptionMarkdown\": \"\", \"startDate\": \"2026-11-01\", \"endDate\": \"2026-11-30\", \"status\": \"IN_PROGRESS\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"bProjectId\", body.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "준비 · 다른 프로젝트",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"회의 검증 다른 소속\", \"descriptionMarkdown\": \"\", \"startDate\": \"2026-11-01\", \"endDate\": \"2026-11-30\", \"status\": \"IN_PROGRESS\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"bOtherProjectId\", body.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "등록 · Markdown 회의",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"  API 회의  \", \"startAt\": \"2026-11-19T10:00:00\", \"endAt\": \"2026-11-19T11:00:00\", \"minutesMarkdown\": \"# 회의록\\n\\n| 담당 | 작업 |\\n| --- | --- |\\n| B | 검색 검증 |\\n\\n- 결정 사항\\n\\n```java\\nint count = 1;\\n```\\n\\n[문서](https://example.com)\\n[위험](javascript:alert(1))\\n<script>alert(1)</script>\\n<img src=x onerror=alert(1)>\\n\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"\\uc81c\\ubaa9 \\uc815\\uaddc\\ud654\", () => { pm.expect(body.data.title).to.eql(\"API 회의\"); });",
+                  "pm.test(\"\\uc6d0\\ubb38 \\ubcf4\\uc874\", () => { pm.expect(body.data.minutesMarkdown).to.eql(\"# \\ud68c\\uc758\\ub85d\\n\\n| \\ub2f4\\ub2f9 | \\uc791\\uc5c5 |\\n| --- | --- |\\n| B | \\uac80\\uc0c9 \\uac80\\uc99d |\\n\\n- \\uacb0\\uc815 \\uc0ac\\ud56d\\n\\n```java\\nint count = 1;\\n```\\n\\n[\\ubb38\\uc11c](https://example.com)\\n[\\uc704\\ud5d8](javascript:alert(1))\\n<script>alert(1)</script>\\n<img src=x onerror=alert(1)>\\n\"); });",
+                  "pm.test(\"\\ud45c\\u00b7\\ucf54\\ub4dc\\u00b7\\uc81c\\ubaa9\\u00b7\\uc548\\uc804 \\ub9c1\\ud06c \\ubcf4\\uc874 \\ubc0f \\uc704\\ud5d8 \\uc694\\uc18c \\uc81c\\ud55c\", () => { const html = body.data.minutesHtml; pm.expect(html).to.include(\"<table>\"); pm.expect(html).to.include(\"<code>\"); pm.expect(html).to.include(\"<h1>\"); pm.expect(html).to.include(\"https://example.com\"); const dom = require(\"cheerio\").load(html); pm.expect(dom(\"script, img, [onerror], [onclick]\").length).to.eql(0); dom(\"a\").each((index, element) => pm.expect(dom(element).attr(\"href\") || \"\").not.to.match(/^javascript:/i)); });",
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"bMeetingId\", body.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "상세 · HTML",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/{{bMeetingId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"\\ud45c\\u00b7\\ucf54\\ub4dc\\u00b7\\uc81c\\ubaa9\\u00b7\\uc548\\uc804 \\ub9c1\\ud06c \\ubcf4\\uc874 \\ubc0f \\uc704\\ud5d8 \\uc694\\uc18c \\uc81c\\ud55c\", () => { const html = body.data.minutesHtml; pm.expect(html).to.include(\"<table>\"); pm.expect(html).to.include(\"<code>\"); pm.expect(html).to.include(\"<h1>\"); pm.expect(html).to.include(\"https://example.com\"); const dom = require(\"cheerio\").load(html); pm.expect(dom(\"script, img, [onerror], [onclick]\").length).to.eql(0); dom(\"a\").each((index, element) => pm.expect(dom(element).attr(\"href\") || \"\").not.to.match(/^javascript:/i)); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "목록 · HTML",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"\\ub4f1\\ub85d ID\\uc640 HTML\", () => { pm.expect(body.data).to.have.length(1); pm.expect(body.data[0].id).to.eql(Number(pm.collectionVariables.get(\"bMeetingId\"))); pm.expect(body.data[0].minutesHtml).to.include(\"<table>\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "준비 · 끝 경계",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"끝 경계\", \"startAt\": \"2026-11-19T09:00:00\", \"endAt\": \"2026-11-19T10:00:00\", \"minutesMarkdown\": \"\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"bboundaryEnd\", body.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "준비 · 시작 걸침",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"시작 걸침\", \"startAt\": \"2026-11-19T09:30:00\", \"endAt\": \"2026-11-19T10:30:00\", \"minutesMarkdown\": \"\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"bcrossStart\", body.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "준비 · 종료 걸침",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"종료 걸침\", \"startAt\": \"2026-11-19T10:30:00\", \"endAt\": \"2026-11-19T11:30:00\", \"minutesMarkdown\": \"\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"bcrossEnd\", body.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "준비 · 전체 포함",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"전체 포함\", \"startAt\": \"2026-11-19T09:00:00\", \"endAt\": \"2026-11-19T12:00:00\", \"minutesMarkdown\": \"\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"benclosing\", body.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "준비 · 시작 경계",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"시작 경계\", \"startAt\": \"2026-11-19T11:00:00\", \"endAt\": \"2026-11-19T12:00:00\", \"minutesMarkdown\": \"\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"bboundaryStart\", body.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "검색 · 양쪽 경계",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings?from=2026-11-19T10:00:00&to=2026-11-19T11:00:00"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"\\uacb9\\uce68\\u00b7\\uc815\\ub82c\\u00b7\\ub9de\\ub2ff\\uc740 \\uacbd\\uacc4 \\uc81c\\uc678\", () => { pm.expect(body.data.map(m => m.title)).to.eql([\"전체 포함\",\"시작 걸침\",\"API 회의\",\"종료 걸침\"]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "검색 · from만",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings?from=2026-11-19T11:30:00"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"\\uc2dc\\uc791 \\ud558\\ud55c\", () => { pm.expect(body.data.map(m => m.title)).to.eql([\"전체 포함\",\"시작 경계\"]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "검색 · to만",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings?to=2026-11-19T09:30:00"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"\\uc885\\ub8cc \\uc0c1\\ud55c\", () => { pm.expect(body.data.map(m => m.title)).to.eql([\"끝 경계\",\"전체 포함\"]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "검색 · 빈 결과",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings?from=2026-11-19T12:00:00"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"\\ube48 \\ubc30\\uc5f4\", () => { pm.expect(body.data).to.eql([]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "검색 · 다른 소속 제외",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{bOtherProjectId}}/meetings"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"\\ube48 \\ubc30\\uc5f4\", () => { pm.expect(body.data).to.eql([]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "실패 · 동일 검색 시각",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings?from=2026-11-19T10:00:00&to=2026-11-19T10:00:00"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "const body = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "실패 · 검색 형식",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings?from=wrong"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "const body = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "실패 · 검색 offset",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings?from=2026-11-19T10:00:00Z"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "const body = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "실패 · 없는 프로젝트",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/9223372036854775807/meetings"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "const body = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "실패 · 다른 소속 상세",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{bOtherProjectId}}/meetings/{{bMeetingId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "const body = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "실패 · 다른 소속 수정",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects/{{bOtherProjectId}}/meetings/{{bMeetingId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"  API 회의  \", \"startAt\": \"2026-11-19T10:00:00\", \"endAt\": \"2026-11-19T11:00:00\", \"minutesMarkdown\": \"# 회의록\\n\\n| 담당 | 작업 |\\n| --- | --- |\\n| B | 검색 검증 |\\n\\n- 결정 사항\\n\\n```java\\nint count = 1;\\n```\\n\\n[문서](https://example.com)\\n[위험](javascript:alert(1))\\n<script>alert(1)</script>\\n<img src=x onerror=alert(1)>\\n\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "const body = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "실패 · 다른 소속 삭제",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{bOtherProjectId}}/meetings/{{bMeetingId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "const body = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "실패 · 필수값 누락",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/{{bMeetingId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "const body = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "실패 · 동일 회의 시각",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/{{bMeetingId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"실패 제목\", \"startAt\": \"2026-11-19T10:00:00\", \"endAt\": \"2026-11-19T10:00:00\", \"minutesMarkdown\": \"# 회의록\\n\\n| 담당 | 작업 |\\n| --- | --- |\\n| B | 검색 검증 |\\n\\n- 결정 사항\\n\\n```java\\nint count = 1;\\n```\\n\\n[문서](https://example.com)\\n[위험](javascript:alert(1))\\n<script>alert(1)</script>\\n<img src=x onerror=alert(1)>\\n\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "const body = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "실패 뒤 원본 보존",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/{{bMeetingId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"\\uc6d0\\ubcf8 \\uc81c\\ubaa9\\u00b7\\uc2dc\\uac01\\u00b7\\uc6d0\\ubb38 \\ubcf4\\uc874\", () => { pm.expect(body.data.title).to.eql(\"API 회의\"); pm.expect(body.data.startAt).to.eql(\"2026-11-19T10:00:00\"); pm.expect(body.data.endAt).to.eql(\"2026-11-19T11:00:00\"); pm.expect(body.data.minutesMarkdown).to.eql(\"# \\ud68c\\uc758\\ub85d\\n\\n| \\ub2f4\\ub2f9 | \\uc791\\uc5c5 |\\n| --- | --- |\\n| B | \\uac80\\uc0c9 \\uac80\\uc99d |\\n\\n- \\uacb0\\uc815 \\uc0ac\\ud56d\\n\\n```java\\nint count = 1;\\n```\\n\\n[\\ubb38\\uc11c](https://example.com)\\n[\\uc704\\ud5d8](javascript:alert(1))\\n<script>alert(1)</script>\\n<img src=x onerror=alert(1)>\\n\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "실패 · 시각 배열",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"  API 회의  \", \"startAt\": [2026, 11, 19, 10, 0, 0], \"endAt\": \"2026-11-19T11:00:00\", \"minutesMarkdown\": \"# 회의록\\n\\n| 담당 | 작업 |\\n| --- | --- |\\n| B | 검색 검증 |\\n\\n- 결정 사항\\n\\n```java\\nint count = 1;\\n```\\n\\n[문서](https://example.com)\\n[위험](javascript:alert(1))\\n<script>alert(1)</script>\\n<img src=x onerror=alert(1)>\\n\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "const body = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "실패 · 빈 제목",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \" \", \"startAt\": \"2026-11-19T10:00:00\", \"endAt\": \"2026-11-19T11:00:00\", \"minutesMarkdown\": \"# 회의록\\n\\n| 담당 | 작업 |\\n| --- | --- |\\n| B | 검색 검증 |\\n\\n- 결정 사항\\n\\n```java\\nint count = 1;\\n```\\n\\n[문서](https://example.com)\\n[위험](javascript:alert(1))\\n<script>alert(1)</script>\\n<img src=x onerror=alert(1)>\\n\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "const body = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "실패 · 삭제 경로 ID",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/0"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "const body = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "삭제 제한 · 하위 회의 존재",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+                  "const body = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "수정 · 날짜 넘김·빈 회의록",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/{{bMeetingId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"  밤 회의  \", \"startAt\": \"2026-11-19T23:30:00\", \"endAt\": \"2026-11-20T00:30:00\", \"minutesMarkdown\": \"\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"\\uc804\\uccb4 \\uc218\\uc815 \\ubc0f \\ube48 HTML\", () => { pm.expect(body.data.title).to.eql(\"밤 회의\"); pm.expect(body.data.minutesHtml).to.eql(\"\"); pm.expect(body.data.minutesMarkdown).to.eql(\"\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "수정 · HTML 재생성",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/{{bMeetingId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"변경 회의\", \"startAt\": \"2026-11-19T10:00:00\", \"endAt\": \"2026-11-19T11:00:00\", \"minutesMarkdown\": \"# 회의록\\n\\n| 담당 | 작업 |\\n| --- | --- |\\n| B | 검색 검증 |\\n\\n- 결정 사항\\n\\n```java\\nint count = 1;\\n```\\n\\n[문서](https://example.com)\\n[위험](javascript:alert(1))\\n<script>alert(1)</script>\\n<img src=x onerror=alert(1)>\\n\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"\\ud45c\\u00b7\\ucf54\\ub4dc\\u00b7\\uc81c\\ubaa9\\u00b7\\uc548\\uc804 \\ub9c1\\ud06c \\ubcf4\\uc874 \\ubc0f \\uc704\\ud5d8 \\uc694\\uc18c \\uc81c\\ud55c\", () => { const html = body.data.minutesHtml; pm.expect(html).to.include(\"<table>\"); pm.expect(html).to.include(\"<code>\"); pm.expect(html).to.include(\"<h1>\"); pm.expect(html).to.include(\"https://example.com\"); const dom = require(\"cheerio\").load(html); pm.expect(dom(\"script, img, [onerror], [onclick]\").length).to.eql(0); dom(\"a\").each((index, element) => pm.expect(dom(element).attr(\"href\") || \"\").not.to.match(/^javascript:/i)); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "삭제 · 정상",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/{{bMeetingId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"\\uc0ad\\uc81c \\uacf5\\ud1b5 \\uc751\\ub2f5\", () => { pm.expect(body.data).to.eql(null); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "삭제 · 상세 재조회",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/{{bMeetingId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "const body = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "삭제 · 재삭제",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/{{bMeetingId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "const body = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "정리 · bboundaryEnd",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/{{bboundaryEnd}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "정리 · bcrossStart",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/{{bcrossStart}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "정리 · bcrossEnd",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/{{bcrossEnd}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "정리 · benclosing",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/{{benclosing}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "정리 · bboundaryStart",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}/meetings/{{bboundaryStart}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "정리 · 프로젝트",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{bProjectId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "정리 · 다른 프로젝트",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{bOtherProjectId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
