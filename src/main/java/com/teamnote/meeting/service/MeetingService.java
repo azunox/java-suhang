@@ -11,9 +11,7 @@ public interface MeetingService {
 
     MeetingResponse create(Long projectId, MeetingCreateRequest request);
 
-    List<MeetingResponse> findAll(Long projectId);
-
-    List<MeetingResponse> search(Long projectId, MeetingSearchRequest request);
+    List<MeetingResponse> findAll(Long projectId, MeetingSearchRequest request);
 
     MeetingResponse findById(Long projectId, Long meetingId);
 

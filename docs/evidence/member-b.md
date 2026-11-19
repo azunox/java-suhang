@@ -2,6 +2,19 @@
 
 2026년 11월 19일 · Java 21.0.10 · Spring Boot 4.1.1 · H2 2.4.240
 
+## 검색 형식 리뷰 반영
+
+검색 파라미터는 생략했을 때만 null로 바인딩한다. 명시한 빈 값·공백·초 생략·소수 초는 400으로 처리하도록 검색 DTO 전용 바인더를 추가했다. JSON 등록·수정과 query 검색은 같은 MeetingDateTimeParser를 호출한다. Spring의 기본 날짜 변환에 맡겼을 때 회귀 테스트 8건이 실패했고, 수정 후 from·to 각각의 오류 및 정상 형식을 검증했다.
+
+조회 Service는 `findAll(projectId, MeetingSearchRequest)` 하나로 통일했다. 쓰이지 않는 목록 Query Method를 제거하고 Service·회의 테스트의 import를 정렬했다.
+
+- `./gradlew test --tests 'com.teamnote.meeting.*'` · Controller 36·Repository 7·Service 4·영속성 4, 총 51건 통과
+- `./gradlew bootJar` 성공, Java 21 로컬 기동
+- 팀 Postman 112개 요청·369개 검증 통과, exit 0. 빈 값·공백·초 생략·소수 초의 양쪽 파라미터 8건을 추가했다.
+- [검색 리뷰 반영 후 Postman 로그](member-b-postman-search-review.txt) · [테스트 상세](member-b-tests.json)의 `strictSearchReview`
+
+아래 전체 테스트 190건과 Postman 104개·345개 결과는 리뷰 수정 전 통합 실행 기록이다.
+
 ## 담당 구현
 
 - 회의 CRUD 5개, 시간 검증과 프로젝트 소속 검증

@@ -384,5 +384,40 @@
         "skipped": 0
       }
     ]
+  },
+  "strictSearchReview": {
+    "command": "./gradlew test --tests com.teamnote.meeting.*",
+    "total": 51,
+    "failed": 0,
+    "classes": [
+      {
+        "name": "com.teamnote.meeting.controller.MeetingControllerTest",
+        "tests": 36,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.teamnote.meeting.repository.MeetingRepositoryTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.teamnote.meeting.service.MeetingPersistenceTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.teamnote.meeting.service.MeetingServiceImplTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ]
   }
 }

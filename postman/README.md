@@ -25,6 +25,8 @@ postman collection run postman/TEAMNOTE.postman_collection.json \
   --env-var baseUrl=http://localhost:8080 --no-report-events --timeout-request 5000
 ```
 
-회의만 실행하려면 `TEAMNOTE.meetings.postman_collection.json`을 사용한다. 컬렉션은 임시 데이터를 생성하고 정상 종료 시 삭제한다. 중간 실패 후에는 서버를 재시작해 메모리 H2를 초기화한 뒤 처음부터 실행한다. 팀원 A의 SQL 샘플 요청은 기본 프로젝트 1의 초기 데이터가 있는 로컬 프로필을 사용한다.
+회의만 실행하려면 `TEAMNOTE.meetings.postman_collection.json`을 사용한다. 회의 요청은 검색 형식 회귀 8개를 포함해 49개이며, 팀 전체는 112개다. 빈 값·공백·초 생략·소수 초는 400, 파라미터 생략과 정상 초 단위 형식은 200으로 검증한다.
+
+컬렉션은 임시 데이터를 생성하고 정상 종료 시 삭제한다. 중간 실패 후에는 서버를 재시작해 메모리 H2를 초기화한 뒤 처음부터 실행한다. 팀원 A의 SQL 샘플 요청은 기본 프로젝트 1의 초기 데이터가 있는 로컬 프로필을 사용한다.
 
 실제 검증 범위·명령·실행 결과는 [팀원 B 근거](../docs/evidence/member-b.md)에 기록한다.

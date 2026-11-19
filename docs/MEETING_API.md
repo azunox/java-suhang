@@ -25,6 +25,8 @@ POST·PUT 본문은 아래 네 필드를 모두 받는다. 제목은 필수이�
 
 목록의 `from`, `to`는 선택 query parameter다. `from < to`를 만족해야 한다. 검색 구간은 `[from, to)`이며 회의와 겹치는 구간을 검색한다.
 
+파라미터를 생략했을 때만 해당 조건을 제외한다. 값이 있으면 등록·수정과 같은 엄격한 `yyyy-MM-dd'T'HH:mm:ss` 형식으로 검사한다. `from=`·`to=`처럼 빈 값, 공백, 초를 생략한 값, 소수 초·오프셋이 있는 값은 400이다.
+
 - `from`만 있으면 `meeting.endAt > from`
 - `to`만 있으면 `meeting.startAt < to`
 - 둘 다 있으면 위 조건을 AND로 적용

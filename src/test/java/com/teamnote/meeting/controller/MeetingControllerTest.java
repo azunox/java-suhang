@@ -4,32 +4,36 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
 
-import com.teamnote.common.exception.GlobalExceptionHandler;
 import com.teamnote.common.config.MarkdownConfiguration;
+import com.teamnote.common.exception.GlobalExceptionHandler;
 import com.teamnote.common.service.MarkdownServiceImpl;
 import com.teamnote.meeting.entity.Meeting;
 import com.teamnote.meeting.repository.MeetingRepository;
 import com.teamnote.meeting.service.MeetingServiceImpl;
 import com.teamnote.project.entity.Project;
 import com.teamnote.project.repository.ProjectRepository;
+import org.jsoup.Jsoup;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.jsoup.Jsoup;
 
-import static org.hamcrest.Matchers.nullValue;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -116,6 +120,8 @@ class MeetingControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data").isArray())
                 .andExpect(jsonPath("$.data").isEmpty());
+
+        verify(meetingRepository).search(1L, null, null);
     }
 
     @Test
@@ -327,6 +333,43 @@ class MeetingControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
         verifyNoInteractions(projectRepository, meetingRepository);
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidSearchDateTimes")
+    void rejectsPresentSearchParameterUnlessItContainsStrictSecondPrecision(String parameter, String value)
+            throws Exception {
+        lenient().when(projectRepository.existsById(1L)).thenReturn(true);
+
+        mockMvc.perform(get(MEETINGS_PATH, 1).param(parameter, value))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.error.fields[0].field").value(parameter));
+
+        verifyNoInteractions(projectRepository, meetingRepository);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"from", "to"})
+    void acceptsStrictSearchTimeAndLeavesOnlyOmittedBoundUnset(String parameter) throws Exception {
+        LocalDateTime time = LocalDateTime.parse("2026-11-19T10:00:00");
+        LocalDateTime from = parameter.equals("from") ? time : null;
+        LocalDateTime to = parameter.equals("to") ? time : null;
+        when(projectRepository.existsById(1L)).thenReturn(true);
+        when(meetingRepository.search(1L, from, to)).thenReturn(List.of());
+
+        mockMvc.perform(get(MEETINGS_PATH, 1).param(parameter, "2026-11-19T10:00:00"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").isEmpty());
+
+        verify(meetingRepository).search(1L, from, to);
+    }
+
+    static Stream<Arguments> invalidSearchDateTimes() {
+        return Stream.of("", " ", "2026-11-19T10:00", "2026-11-19T10:00:00.000")
+                .flatMap(value -> Stream.of(Arguments.of("from", value), Arguments.of("to", value)));
     }
 
     @Test

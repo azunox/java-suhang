@@ -4,13 +4,14 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-import com.teamnote.common.exception.InvalidRequestException;
 import com.teamnote.common.config.MarkdownConfiguration;
+import com.teamnote.common.exception.InvalidRequestException;
+import com.teamnote.common.exception.ResourceNotFoundException;
 import com.teamnote.common.service.MarkdownService;
 import com.teamnote.common.service.MarkdownServiceImpl;
-import com.teamnote.common.exception.ResourceNotFoundException;
 import com.teamnote.meeting.dto.MeetingCreateRequest;
 import com.teamnote.meeting.dto.MeetingResponse;
+import com.teamnote.meeting.dto.MeetingSearchRequest;
 import com.teamnote.meeting.entity.Meeting;
 import com.teamnote.meeting.repository.MeetingRepository;
 import com.teamnote.project.entity.Project;
@@ -102,7 +103,7 @@ class MeetingServiceImplTest {
         when(project.getId()).thenReturn(1L);
         when(meetingRepository.search(1L, null, null)).thenReturn(List.of(first, second));
 
-        assertThat(meetingService.findAll(1L))
+        assertThat(meetingService.findAll(1L, new MeetingSearchRequest(null, null)))
                 .extracting(MeetingResponse::title)
                 .containsExactly("첫 회의", "둘째 회의");
     }

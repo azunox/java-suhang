@@ -105,11 +105,11 @@ class MeetingPersistenceTest {
         MeetingResponse original = service.findById(projectId, meetingId);
         assertThat(original.minutesMarkdown()).isEqualTo("# 회의록");
         assertThat(original.minutesHtml()).isEqualTo("<h1>회의록</h1>");
-        assertThat(service.search(projectId, new MeetingSearchRequest(START, START.plusHours(1))))
+        assertThat(service.findAll(projectId, new MeetingSearchRequest(START, START.plusHours(1))))
                 .containsExactly(original);
         MeetingResponse empty = service.update(projectId, meetingId,
                 new MeetingUpdateRequest("빈 회의록", START, START.plusHours(1), ""));
         assertThat(empty.minutesHtml()).isEmpty();
-        assertThat(service.findAll(projectId)).containsExactly(empty);
+        assertThat(service.findAll(projectId, new MeetingSearchRequest(null, null))).containsExactly(empty);
     }
 }

@@ -2,8 +2,8 @@ package com.teamnote.meeting.service;
 
 import java.util.List;
 
-import com.teamnote.common.exception.ResourceNotFoundException;
 import com.teamnote.common.exception.InvalidRequestException;
+import com.teamnote.common.exception.ResourceNotFoundException;
 import com.teamnote.common.service.MarkdownService;
 import com.teamnote.meeting.dto.MeetingCreateRequest;
 import com.teamnote.meeting.dto.MeetingResponse;
@@ -46,12 +46,7 @@ public class MeetingServiceImpl implements MeetingService {
     }
 
     @Override
-    public List<MeetingResponse> findAll(Long projectId) {
-        return search(projectId, new MeetingSearchRequest(null, null));
-    }
-
-    @Override
-    public List<MeetingResponse> search(Long projectId, MeetingSearchRequest request) {
+    public List<MeetingResponse> findAll(Long projectId, MeetingSearchRequest request) {
         if (request.from() != null && request.to() != null && !request.from().isBefore(request.to())) {
             throw new InvalidRequestException("조회 시작 시각은 종료 시각보다 빨라야 합니다.");
         }
