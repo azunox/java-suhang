@@ -3,8 +3,11 @@ package com.teamnote.meeting.service;
 import java.util.List;
 
 import com.teamnote.common.exception.ResourceNotFoundException;
+import com.teamnote.common.exception.InvalidRequestException;
+import com.teamnote.common.service.MarkdownService;
 import com.teamnote.meeting.dto.MeetingCreateRequest;
 import com.teamnote.meeting.dto.MeetingResponse;
+import com.teamnote.meeting.dto.MeetingSearchRequest;
 import com.teamnote.meeting.dto.MeetingUpdateRequest;
 import com.teamnote.meeting.entity.Meeting;
 import com.teamnote.meeting.repository.MeetingRepository;
@@ -19,10 +22,16 @@ public class MeetingServiceImpl implements MeetingService {
 
     private final MeetingRepository meetingRepository;
     private final ProjectRepository projectRepository;
+    private final MarkdownService markdownService;
 
-    public MeetingServiceImpl(MeetingRepository meetingRepository, ProjectRepository projectRepository) {
+    public MeetingServiceImpl(
+            MeetingRepository meetingRepository,
+            ProjectRepository projectRepository,
+            MarkdownService markdownService
+    ) {
         this.meetingRepository = meetingRepository;
         this.projectRepository = projectRepository;
+        this.markdownService = markdownService;
     }
 
     @Override
@@ -38,10 +47,18 @@ public class MeetingServiceImpl implements MeetingService {
 
     @Override
     public List<MeetingResponse> findAll(Long projectId) {
+        return search(projectId, new MeetingSearchRequest(null, null));
+    }
+
+    @Override
+    public List<MeetingResponse> search(Long projectId, MeetingSearchRequest request) {
+        if (request.from() != null && request.to() != null && !request.from().isBefore(request.to())) {
+            throw new InvalidRequestException("조회 시작 시각은 종료 시각보다 빨라야 합니다.");
+        }
         if (!projectRepository.existsById(projectId)) {
             throw new ResourceNotFoundException("프로젝트를 찾을 수 없습니다.");
         }
-        return meetingRepository.findAllByProject_IdOrderByStartAtAscIdAsc(projectId).stream()
+        return meetingRepository.search(projectId, request.from(), request.to()).stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -77,7 +94,8 @@ public class MeetingServiceImpl implements MeetingService {
                 meeting.getTitle(),
                 meeting.getStartAt(),
                 meeting.getEndAt(),
-                meeting.getMinutesMarkdown()
+                meeting.getMinutesMarkdown(),
+                markdownService.render(meeting.getMinutesMarkdown())
         );
     }
 }

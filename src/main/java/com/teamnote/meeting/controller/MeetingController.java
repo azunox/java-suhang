@@ -5,6 +5,7 @@ import java.util.List;
 import com.teamnote.common.response.ApiResponse;
 import com.teamnote.meeting.dto.MeetingCreateRequest;
 import com.teamnote.meeting.dto.MeetingResponse;
+import com.teamnote.meeting.dto.MeetingSearchRequest;
 import com.teamnote.meeting.dto.MeetingUpdateRequest;
 import com.teamnote.meeting.service.MeetingService;
 import jakarta.validation.Valid;
@@ -13,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -40,9 +42,10 @@ public class MeetingController {
 
     @GetMapping
     public ApiResponse<List<MeetingResponse>> findAll(
-            @PathVariable @Positive(message = "프로젝트 ID는 양수여야 합니다.") Long projectId
+            @PathVariable @Positive(message = "프로젝트 ID는 양수여야 합니다.") Long projectId,
+            @Valid @ModelAttribute MeetingSearchRequest request
     ) {
-        return ApiResponse.success(meetingService.findAll(projectId));
+        return ApiResponse.success(meetingService.search(projectId, request));
     }
 
     @GetMapping("/{meetingId}")

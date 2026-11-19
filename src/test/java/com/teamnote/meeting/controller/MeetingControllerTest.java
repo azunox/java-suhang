@@ -6,6 +6,8 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.teamnote.common.exception.GlobalExceptionHandler;
+import com.teamnote.common.config.MarkdownConfiguration;
+import com.teamnote.common.service.MarkdownServiceImpl;
 import com.teamnote.meeting.entity.Meeting;
 import com.teamnote.meeting.repository.MeetingRepository;
 import com.teamnote.meeting.service.MeetingServiceImpl;
@@ -22,8 +24,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.jsoup.Jsoup;
 
 import static org.hamcrest.Matchers.nullValue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.times;
@@ -68,7 +72,10 @@ class MeetingControllerTest {
 
     @BeforeEach
     void setUp() {
-        MeetingServiceImpl meetingService = new MeetingServiceImpl(meetingRepository, projectRepository);
+        MarkdownConfiguration config = new MarkdownConfiguration();
+        MeetingServiceImpl meetingService = new MeetingServiceImpl(meetingRepository, projectRepository,
+                new MarkdownServiceImpl(config.markdownParser(), config.markdownHtmlRenderer(),
+                        config.markdownHtmlCleaner()));
         mockMvc = MockMvcBuilders.standaloneSetup(new MeetingController(meetingService))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
@@ -102,7 +109,7 @@ class MeetingControllerTest {
     @Test
     void returnsEmptyArrayForExistingProjectWithoutMeetings() throws Exception {
         when(projectRepository.existsById(1L)).thenReturn(true);
-        when(meetingRepository.findAllByProject_IdOrderByStartAtAscIdAsc(1L)).thenReturn(List.of());
+        when(meetingRepository.search(1L, null, null)).thenReturn(List.of());
 
         mockMvc.perform(get(MEETINGS_PATH, 1))
                 .andExpect(status().isOk())
@@ -116,6 +123,7 @@ class MeetingControllerTest {
         when(project.getId()).thenReturn(1L);
         when(savedMeeting.getId()).thenReturn(7L);
         when(savedMeeting.getProject()).thenReturn(project);
+        when(savedMeeting.getMinutesMarkdown()).thenReturn("");
         when(meetingRepository.findByIdAndProject_Id(7L, 1L)).thenReturn(Optional.of(savedMeeting));
 
         mockMvc.perform(get(MEETINGS_PATH + "/{meetingId}", 1, 7))
@@ -293,5 +301,59 @@ class MeetingControllerTest {
     private Meeting existingMeeting() {
         return Meeting.create(project, "기존 회의", LocalDateTime.parse("2026-11-17T09:00:00"),
                 LocalDateTime.parse("2026-11-17T10:00:00"), "기존 회의록");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"2026-11-19T10:00:00", "2026-11-19T09:00:00"})
+    void rejectsEqualOrReversedSearchRange(String to) throws Exception {
+        mockMvc.perform(get(MEETINGS_PATH, 1).param("from", "2026-11-19T10:00:00").param("to", to))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
+        verifyNoInteractions(projectRepository, meetingRepository);
+    }
+
+    @Test
+    void rejectsMalformedSearchDate() throws Exception {
+        mockMvc.perform(get(MEETINGS_PATH, 1).param("from", "invalid"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
+        verifyNoInteractions(projectRepository, meetingRepository);
+    }
+
+    @Test
+    void returnsRenderedAndSanitizedHtmlWithOriginalMarkdown() throws Exception {
+        String markdown = """
+                # 회의록
+
+                | 담당 | 작업 |
+                | --- | --- |
+                | B | 검색 |
+
+                - 결정 사항
+
+                ```java
+                int count = 1;
+                ```
+
+                [문서](https://example.com)
+                [위험](javascript:alert(1))
+                <script>alert(1)</script>
+                <img src=x onerror=alert(1)>
+                """;
+        Meeting meeting = Meeting.create(project, "회의록", LocalDateTime.parse("2026-11-19T10:00:00"),
+                LocalDateTime.parse("2026-11-19T11:00:00"), markdown);
+        when(project.getId()).thenReturn(1L);
+        when(meetingRepository.findByIdAndProject_Id(7L, 1L)).thenReturn(Optional.of(meeting));
+        var result = mockMvc.perform(get(MEETING_PATH, 1, 7))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.minutesMarkdown").value(markdown))
+                .andExpect(jsonPath("$.data.minutesHtml").value(org.hamcrest.Matchers.containsString("<table>")))
+                .andReturn();
+        String html = tools.jackson.databind.json.JsonMapper.builder().build()
+                .readTree(result.getResponse().getContentAsString()).get("data").get("minutesHtml").asText();
+        org.jsoup.nodes.Document document = Jsoup.parseBodyFragment(html);
+        assertThat(document.select("h1, table, ul, pre code")).hasSize(4);
+        assertThat(document.select("a[href=https://example.com]")).hasSize(1);
+        assertThat(document.select("script, [onerror], [onclick], a[href^=javascript:]")).isEmpty();
     }
 }

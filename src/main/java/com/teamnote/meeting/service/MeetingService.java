@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.teamnote.meeting.dto.MeetingCreateRequest;
 import com.teamnote.meeting.dto.MeetingResponse;
+import com.teamnote.meeting.dto.MeetingSearchRequest;
 import com.teamnote.meeting.dto.MeetingUpdateRequest;
 
 public interface MeetingService {
@@ -11,6 +12,8 @@ public interface MeetingService {
     MeetingResponse create(Long projectId, MeetingCreateRequest request);
 
     List<MeetingResponse> findAll(Long projectId);
+
+    List<MeetingResponse> search(Long projectId, MeetingSearchRequest request);
 
     MeetingResponse findById(Long projectId, Long meetingId);
 

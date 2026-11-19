@@ -5,6 +5,9 @@ import java.util.List;
 import java.util.Optional;
 
 import com.teamnote.common.exception.InvalidRequestException;
+import com.teamnote.common.config.MarkdownConfiguration;
+import com.teamnote.common.service.MarkdownService;
+import com.teamnote.common.service.MarkdownServiceImpl;
 import com.teamnote.common.exception.ResourceNotFoundException;
 import com.teamnote.meeting.dto.MeetingCreateRequest;
 import com.teamnote.meeting.dto.MeetingResponse;
@@ -17,6 +20,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,6 +48,12 @@ class MeetingServiceImplTest {
     @InjectMocks
     private MeetingServiceImpl meetingService;
 
+    private static final MarkdownConfiguration CONFIG = new MarkdownConfiguration();
+
+    @Spy
+    private MarkdownService markdownService = new MarkdownServiceImpl(
+            CONFIG.markdownParser(), CONFIG.markdownHtmlRenderer(), CONFIG.markdownHtmlCleaner());
+
     @Test
     void savesMeetingUnderProjectWithNormalizedTitleAndUnchangedMarkdown() {
         String markdown = "  ## 회의록\n\n메모  \n";
@@ -58,7 +68,8 @@ class MeetingServiceImplTest {
         ArgumentCaptor<Meeting> savedMeeting = ArgumentCaptor.forClass(Meeting.class);
         verify(meetingRepository).save(savedMeeting.capture());
         assertThat(savedMeeting.getValue().getProject()).isSameAs(project);
-        assertThat(response).isEqualTo(new MeetingResponse(null, 1L, "개발 점검", START_AT, END_AT, markdown));
+        assertThat(response).isEqualTo(new MeetingResponse(null, 1L, "개발 점검", START_AT, END_AT, markdown,
+                markdownService.render(markdown)));
     }
 
     @Test
@@ -89,7 +100,7 @@ class MeetingServiceImplTest {
         Meeting second = Meeting.create(project, "둘째 회의", END_AT, END_AT.plusHours(1), "");
         when(projectRepository.existsById(1L)).thenReturn(true);
         when(project.getId()).thenReturn(1L);
-        when(meetingRepository.findAllByProject_IdOrderByStartAtAscIdAsc(1L)).thenReturn(List.of(first, second));
+        when(meetingRepository.search(1L, null, null)).thenReturn(List.of(first, second));
 
         assertThat(meetingService.findAll(1L))
                 .extracting(MeetingResponse::title)

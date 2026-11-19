@@ -8,6 +8,7 @@ public record MeetingResponse(
         String title,
         LocalDateTime startAt,
         LocalDateTime endAt,
-        String minutesMarkdown
+        String minutesMarkdown,
+        String minutesHtml
 ) {
 }
