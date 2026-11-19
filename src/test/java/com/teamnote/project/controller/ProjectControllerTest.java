@@ -39,6 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ProjectControllerTest {
 
     private static final String MARKDOWN = "# TEAMNOTE\n\n설명  \n";
+    private static final String HTML = "<h1>TEAMNOTE</h1>\n<p>설명</p>";
     private static final String VALID_REQUEST = """
             {
               "name": "  REST API 수행평가  ",
@@ -77,7 +78,7 @@ class ProjectControllerTest {
                 .andExpect(jsonPath("$.data.startDate").value("2026-11-09"))
                 .andExpect(jsonPath("$.data.endDate").value("2026-11-20"))
                 .andExpect(jsonPath("$.data.status").value("IN_PROGRESS"))
-                .andExpect(jsonPath("$.data.descriptionHtml").doesNotExist());
+                .andExpect(jsonPath("$.data.descriptionHtml").value(HTML));
 
         verify(projectService).create(new ProjectCreateRequest("  REST API 수행평가  ", MARKDOWN,
                 LocalDate.of(2026, 11, 9), LocalDate.of(2026, 11, 20), ProjectStatus.IN_PROGRESS));
@@ -210,7 +211,7 @@ class ProjectControllerTest {
     }
 
     private ProjectResponse response() {
-        return new ProjectResponse(1L, "REST API 수행평가", MARKDOWN,
+        return new ProjectResponse(1L, "REST API 수행평가", MARKDOWN, HTML,
                 LocalDate.of(2026, 11, 9), LocalDate.of(2026, 11, 20), ProjectStatus.IN_PROGRESS);
     }
 }

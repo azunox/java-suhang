@@ -3,6 +3,7 @@ package com.teamnote.project.service;
 import java.util.List;
 
 import com.teamnote.common.exception.ResourceNotFoundException;
+import com.teamnote.common.service.MarkdownService;
 import com.teamnote.project.dto.ProjectCreateRequest;
 import com.teamnote.project.dto.ProjectResponse;
 import com.teamnote.project.entity.Project;
@@ -15,9 +16,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProjectServiceImpl implements ProjectService {
 
     private final ProjectRepository projectRepository;
+    private final MarkdownService markdownService;
 
-    public ProjectServiceImpl(ProjectRepository projectRepository) {
+    public ProjectServiceImpl(ProjectRepository projectRepository, MarkdownService markdownService) {
         this.projectRepository = projectRepository;
+        this.markdownService = markdownService;
     }
 
     @Override
@@ -48,10 +51,12 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     private ProjectResponse toResponse(Project project) {
+        String markdown = project.getDescriptionMarkdown();
         return new ProjectResponse(
                 project.getId(),
                 project.getName(),
-                project.getDescriptionMarkdown(),
+                markdown,
+                markdownService.render(markdown),
                 project.getStartDate(),
                 project.getEndDate(),
                 project.getStatus()

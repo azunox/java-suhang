@@ -1,6 +1,6 @@
-# 프로젝트 등록·조회와 공통 예외 사용법
+# 프로젝트 등록·조회와 공통 기능 사용법
 
-팀장 명세의 커밋 1 구현 범위다. 프로젝트 등록·목록·상세와 공통 도메인 예외를 사용할 수 있다.
+프로젝트 등록·목록·상세, 공통 도메인 예외, Markdown 미리보기를 사용할 수 있다.
 
 ## 프로젝트 API
 
@@ -26,10 +26,22 @@
 - 설명은 빈 문자열을 허용하고 원문의 공백·줄바꿈을 보존한다.
 - 기간은 `startDate <= endDate`다. 같은 날짜와 과거 날짜를 허용하고 상태를 날짜로 자동 변경하지 않는다.
 - 상태는 `PLANNED`, `IN_PROGRESS`, `COMPLETED` 중 하나다.
-- 응답의 `data`는 `id`, `name`, `descriptionMarkdown`, `startDate`, `endDate`, `status`를 포함한다. 생성된 ID는 `data.id`에서 확인한다.
+- 응답의 `data`는 `id`, `name`, `descriptionMarkdown`, `descriptionHtml`, `startDate`, `endDate`, `status`를 포함한다. 생성된 ID는 `data.id`에서 확인한다.
 - 목록은 DB에서 `id ASC`로 정렬한다. 결과가 없으면 `data: []`다.
 - 상세의 ID는 양수다. 형식 오류·0 이하 값은 400, 존재하지 않는 ID는 404다.
-- 수정·삭제·조건 검색은 커밋 2, `descriptionHtml`·Markdown 미리보기는 커밋 3에서 추가할 예정이다.
+- 프로젝트 수정·삭제·이름 및 상태 조건 검색은 구현 예정이다.
+
+## 공통 Markdown과 미리보기
+
+`POST /api/content/preview`에 `Content-Type: application/json`으로 요청한다.
+
+```json
+{"markdown":"# TEAMNOTE"}
+```
+
+성공 시 200과 `{"success":true,"data":{"html":"<h1>TEAMNOTE</h1>"},"error":null}`을 반환한다. 빈 문자열은 빈 HTML로 변환하고, 필드 누락이나 null은 400 / `INVALID_REQUEST`로 처리한다. 미리보기는 DB에 데이터를 저장하지 않는다.
+
+업무·회의 Service에서는 생성자로 `com.teamnote.common.service.MarkdownService`를 주입받아 응답 DTO를 만들 때 `markdownService.render(원문)`을 호출한다. 업무는 `descriptionHtml`, 회의는 `minutesHtml`에 결과를 담는다. 프로젝트와 미리보기는 같은 구현을 사용한다. commonmark-java로 GFM 표를 포함한 Markdown을 변환하고 jsoup으로 HTML을 정제한다.
 
 ## 공통 예외
 
@@ -44,7 +56,7 @@
 Service에서 대상이 없을 때의 사용 예시:
 
 ```java
-Project project = projectRepository.findById(projectId)
+Project project = projectRepository.findProjectById(projectId)
         .orElseThrow(() -> new ResourceNotFoundException("프로젝트를 찾을 수 없습니다."));
 ```
 

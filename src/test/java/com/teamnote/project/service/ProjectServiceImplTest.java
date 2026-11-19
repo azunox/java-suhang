@@ -4,17 +4,19 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+import com.teamnote.common.config.MarkdownConfiguration;
 import com.teamnote.common.exception.InvalidRequestException;
 import com.teamnote.common.exception.ResourceNotFoundException;
+import com.teamnote.common.service.MarkdownServiceImpl;
 import com.teamnote.project.dto.ProjectCreateRequest;
 import com.teamnote.project.dto.ProjectResponse;
 import com.teamnote.project.entity.Project;
 import com.teamnote.project.entity.ProjectStatus;
 import com.teamnote.project.repository.ProjectRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -32,12 +34,20 @@ class ProjectServiceImplTest {
     private static final LocalDate START_DATE = LocalDate.of(2026, 11, 9);
     private static final LocalDate END_DATE = LocalDate.of(2026, 11, 20);
     private static final String MARKDOWN = "  # TEAMNOTE\n\n설명  \n";
+    private static final String HTML = "<h1>TEAMNOTE</h1>\n<p>설명</p>";
 
     @Mock
     private ProjectRepository projectRepository;
 
-    @InjectMocks
     private ProjectServiceImpl projectService;
+
+    @BeforeEach
+    void setUp() {
+        MarkdownConfiguration configuration = new MarkdownConfiguration();
+        projectService = new ProjectServiceImpl(projectRepository, new MarkdownServiceImpl(
+                configuration.markdownParser(), configuration.markdownHtmlRenderer(), configuration.markdownHtmlCleaner()
+        ));
+    }
 
     @Test
     void savesNormalizedProjectAndReturnsPersistedValues() {
@@ -52,7 +62,7 @@ class ProjectServiceImplTest {
         verify(projectRepository).save(captor.capture());
         assertThat(captor.getValue().getName()).isEqualTo("REST API 수행평가");
         assertThat(captor.getValue().getDescriptionMarkdown()).isEqualTo(MARKDOWN);
-        assertThat(response).isEqualTo(new ProjectResponse(1L, "REST API 수행평가", MARKDOWN,
+        assertThat(response).isEqualTo(new ProjectResponse(1L, "REST API 수행평가", MARKDOWN, HTML,
                 START_DATE, END_DATE, ProjectStatus.IN_PROGRESS));
     }
 
@@ -75,6 +85,7 @@ class ProjectServiceImplTest {
         List<ProjectResponse> responses = projectService.findAll();
 
         assertThat(responses).extracting(ProjectResponse::id).containsExactly(1L, 2L);
+        assertThat(responses).extracting(ProjectResponse::descriptionHtml).containsExactly(HTML, HTML);
         assertThat(responses).extracting(ProjectResponse::name).containsExactly("첫 프로젝트", "두 번째 프로젝트");
         verify(projectRepository).findAllProjects();
     }
@@ -93,7 +104,7 @@ class ProjectServiceImplTest {
 
         ProjectResponse response = projectService.findById(1L);
 
-        assertThat(response).isEqualTo(new ProjectResponse(1L, "프로젝트", MARKDOWN,
+        assertThat(response).isEqualTo(new ProjectResponse(1L, "프로젝트", MARKDOWN, HTML,
                 START_DATE, END_DATE, ProjectStatus.IN_PROGRESS));
     }
 
