@@ -5,26 +5,37 @@ import java.util.List;
 import java.util.Optional;
 
 import com.teamnote.common.config.MarkdownConfiguration;
+import com.teamnote.common.exception.ConflictException;
 import com.teamnote.common.exception.InvalidRequestException;
 import com.teamnote.common.exception.ResourceNotFoundException;
 import com.teamnote.common.service.MarkdownServiceImpl;
+import com.teamnote.meeting.repository.MeetingRepository;
 import com.teamnote.project.dto.ProjectCreateRequest;
 import com.teamnote.project.dto.ProjectResponse;
 import com.teamnote.project.dto.ProjectSearchRequest;
+import com.teamnote.project.dto.ProjectUpdateRequest;
 import com.teamnote.project.entity.Project;
 import com.teamnote.project.entity.ProjectStatus;
 import com.teamnote.project.repository.ProjectRepository;
+import com.teamnote.task.repository.TaskRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -40,12 +51,18 @@ class ProjectServiceImplTest {
     @Mock
     private ProjectRepository projectRepository;
 
+    @Mock
+    private TaskRepository taskRepository;
+
+    @Mock
+    private MeetingRepository meetingRepository;
+
     private ProjectServiceImpl projectService;
 
     @BeforeEach
     void setUp() {
         MarkdownConfiguration configuration = new MarkdownConfiguration();
-        projectService = new ProjectServiceImpl(projectRepository, new MarkdownServiceImpl(
+        projectService = new ProjectServiceImpl(projectRepository, taskRepository, meetingRepository, new MarkdownServiceImpl(
                 configuration.markdownParser(), configuration.markdownHtmlRenderer(), configuration.markdownHtmlCleaner()
         ));
     }
@@ -126,6 +143,88 @@ class ProjectServiceImplTest {
         assertThatThrownBy(() -> projectService.findById(999L))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("프로젝트를 찾을 수 없습니다.");
+    }
+
+    @Test
+    void updatesAllFieldsAndRendersChangedDescription() {
+        Project project = Project.create("기존 프로젝트", "", START_DATE, END_DATE, ProjectStatus.PLANNED);
+        when(projectRepository.findProjectById(1L)).thenReturn(Optional.of(project));
+        ProjectUpdateRequest request = new ProjectUpdateRequest("  변경된 프로젝트  ", MARKDOWN,
+                END_DATE, END_DATE, ProjectStatus.COMPLETED);
+
+        ProjectResponse response = projectService.update(1L, request);
+
+        assertThat(response).isEqualTo(new ProjectResponse(null, "변경된 프로젝트", MARKDOWN, HTML,
+                END_DATE, END_DATE, ProjectStatus.COMPLETED));
+        verify(projectRepository, never()).save(any());
+    }
+
+    @Test
+    void rejectsInvalidUpdateWithoutChangingAnyFields() {
+        Project project = Project.create("프로젝트", MARKDOWN, START_DATE, END_DATE, ProjectStatus.IN_PROGRESS);
+        when(projectRepository.findProjectById(1L)).thenReturn(Optional.of(project));
+        ProjectResponse before = projectService.findById(1L);
+        ProjectUpdateRequest request = new ProjectUpdateRequest("변경된 프로젝트", "",
+                END_DATE, START_DATE, ProjectStatus.COMPLETED);
+
+        assertThatThrownBy(() -> projectService.update(1L, request)).isInstanceOf(InvalidRequestException.class);
+        assertThat(projectService.findById(1L)).isEqualTo(before);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"true, false", "false, true"})
+    void rejectsDeletionWhenTaskOrMeetingExists(boolean hasTask, boolean hasMeeting) {
+        Project project = Project.create("프로젝트", "", START_DATE, END_DATE, ProjectStatus.PLANNED);
+        when(projectRepository.findProjectById(1L)).thenReturn(Optional.of(project));
+        when(taskRepository.existsByProject_Id(1L)).thenReturn(hasTask);
+        if (!hasTask) {
+            when(meetingRepository.existsByProject_Id(1L)).thenReturn(hasMeeting);
+        }
+
+        assertThatThrownBy(() -> projectService.delete(1L)).isInstanceOf(ConflictException.class);
+        verify(projectRepository, never()).delete(any(Project.class));
+        verify(projectRepository, never()).flush();
+    }
+
+    @Test
+    void deletesOnlyTheProjectAndFlushesWhenNoChildrenExist() {
+        Project project = Project.create("프로젝트", "", START_DATE, END_DATE, ProjectStatus.PLANNED);
+        when(projectRepository.findProjectById(1L)).thenReturn(Optional.of(project));
+
+        projectService.delete(1L);
+
+        var order = inOrder(taskRepository, meetingRepository, projectRepository);
+        order.verify(taskRepository).existsByProject_Id(1L);
+        order.verify(meetingRepository).existsByProject_Id(1L);
+        order.verify(projectRepository).delete(project);
+        order.verify(projectRepository).flush();
+    }
+
+    @Test
+    void rejectsDeletionOfMissingProjectBeforeCheckingChildren() {
+        when(projectRepository.findProjectById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> projectService.delete(999L)).isInstanceOf(ResourceNotFoundException.class);
+        verifyNoInteractions(taskRepository, meetingRepository);
+    }
+
+    @Test
+    void propagatesUnrelatedDatabaseErrorsFromDelete() {
+        Project project = Project.create("프로젝트", "", START_DATE, END_DATE, ProjectStatus.PLANNED);
+        when(projectRepository.findProjectById(1L)).thenReturn(Optional.of(project));
+        DataIntegrityViolationException failure = new DataIntegrityViolationException("별도 제약 위반");
+        doThrow(failure).when(projectRepository).flush();
+
+        assertThatThrownBy(() -> projectService.delete(1L)).isSameAs(failure);
+    }
+
+    @Test
+    void reportsMissingProjectWhenAnotherDeleteRemovedTheSameRow() {
+        Project project = Project.create("프로젝트", "", START_DATE, END_DATE, ProjectStatus.PLANNED);
+        when(projectRepository.findProjectById(1L)).thenReturn(Optional.of(project));
+        doThrow(new ObjectOptimisticLockingFailureException(Project.class, 1L)).when(projectRepository).flush();
+
+        assertThatThrownBy(() -> projectService.delete(1L)).isInstanceOf(ResourceNotFoundException.class);
     }
 
     private Project storedProject(Long id, String name) {

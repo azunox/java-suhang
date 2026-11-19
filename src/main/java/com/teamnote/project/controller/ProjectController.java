@@ -6,15 +6,18 @@ import com.teamnote.common.response.ApiResponse;
 import com.teamnote.project.dto.ProjectCreateRequest;
 import com.teamnote.project.dto.ProjectResponse;
 import com.teamnote.project.dto.ProjectSearchRequest;
+import com.teamnote.project.dto.ProjectUpdateRequest;
 import com.teamnote.project.service.ProjectService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -44,5 +47,21 @@ public class ProjectController {
             @PathVariable @Positive(message = "프로젝트 ID는 양수여야 합니다.") Long projectId
     ) {
         return ApiResponse.success(projectService.findById(projectId));
+    }
+
+    @PutMapping("/{projectId}")
+    public ApiResponse<ProjectResponse> update(
+            @PathVariable @Positive(message = "프로젝트 ID는 양수여야 합니다.") Long projectId,
+            @Valid @RequestBody ProjectUpdateRequest request
+    ) {
+        return ApiResponse.success(projectService.update(projectId, request));
+    }
+
+    @DeleteMapping("/{projectId}")
+    public ApiResponse<Void> delete(
+            @PathVariable @Positive(message = "프로젝트 ID는 양수여야 합니다.") Long projectId
+    ) {
+        projectService.delete(projectId);
+        return ApiResponse.success(null);
     }
 }
