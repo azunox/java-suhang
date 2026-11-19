@@ -2,6 +2,7 @@ package com.teamnote.task.dto;
 
 import java.time.LocalDate;
 
+import com.teamnote.common.dto.StrictStringDeserializer;
 import com.teamnote.task.entity.TaskStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -11,11 +12,14 @@ import tools.jackson.databind.annotation.JsonDeserialize;
 public record TaskUpdateRequest(
         @NotBlank(message = "업무 제목은 필수입니다.")
         @Size(max = 120, message = "업무 제목은 120자 이하여야 합니다.")
+        @JsonDeserialize(using = StrictStringDeserializer.class)
         String title,
         @NotNull(message = "업무 설명은 필수입니다.")
+        @JsonDeserialize(using = StrictStringDeserializer.class)
         String descriptionMarkdown,
         @NotBlank(message = "담당자 이름은 필수입니다.")
         @Size(max = 80, message = "담당자 이름은 80자 이하여야 합니다.")
+        @JsonDeserialize(using = StrictStringDeserializer.class)
         String assigneeName,
         @NotNull(message = "마감일은 필수입니다.")
         @JsonDeserialize(using = TaskDateDeserializer.class)

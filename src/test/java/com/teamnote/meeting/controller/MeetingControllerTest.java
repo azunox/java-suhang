@@ -125,6 +125,17 @@ class MeetingControllerTest {
     }
 
     @Test
+    void searchIgnoresHeadersAndFormBindingParameters() throws Exception {
+        when(projectRepository.existsById(1L)).thenReturn(true);
+
+        mockMvc.perform(get(MEETINGS_PATH, 1).param("!from", "2026-11-19T10:00:00")
+                        .header("to", "2026-11-19T11:00:00"))
+                .andExpect(status().isOk());
+
+        verify(meetingRepository).search(1L, null, null);
+    }
+
+    @Test
     void returnsMeetingDetailsOnlyForItsProject() throws Exception {
         when(project.getId()).thenReturn(1L);
         when(savedMeeting.getId()).thenReturn(7L);
@@ -179,10 +190,33 @@ class MeetingControllerTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"2026-11-18T23:30:00Z", "2026-11-18T23:30:00+09:00", "2026-02-30T23:30:00"})
-    void rejectsOffsetsAndInvalidCalendarDates(String startAt) throws Exception {
-        mockMvc.perform(post(MEETINGS_PATH, 1).contentType(MediaType.APPLICATION_JSON)
-                        .content(VALID_REQUEST.replace("2026-11-18T23:30:00", startAt)))
+    @ValueSource(strings = {
+            "2026-11-18T23:30:00Z", "2026-11-18T23:30:00+09:00", "2026-02-30T23:30:00",
+            "+12026-11-18T23:30:00", "-0001-11-18T23:30:00"
+    })
+    void rejectsMalformedDateTimesForCreateAndUpdate(String startAt) throws Exception {
+        String body = VALID_REQUEST.replace("2026-11-18T23:30:00", startAt);
+        mockMvc.perform(post(MEETINGS_PATH, 1).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
+        mockMvc.perform(put(MEETING_PATH, 1, 7).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
+
+        verifyNoInteractions(projectRepository, meetingRepository);
+    }
+
+    @ParameterizedTest
+    @CsvSource(value = {
+            "\"  개발 점검  \" | 123",
+            "\"## 결정 사항\\n\\n기록  \\n\" | false"
+    }, delimiter = '|')
+    void rejectsNonStringTitleAndMinutesForCreateAndUpdate(String original, String invalid) throws Exception {
+        String body = VALID_REQUEST.replace(original, invalid);
+        mockMvc.perform(post(MEETINGS_PATH, 1).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
+        mockMvc.perform(put(MEETING_PATH, 1, 7).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
 
@@ -368,7 +402,8 @@ class MeetingControllerTest {
     }
 
     static Stream<Arguments> invalidSearchDateTimes() {
-        return Stream.of("", " ", "2026-11-19T10:00", "2026-11-19T10:00:00.000")
+        return Stream.of("", " ", "2026-11-19T10:00", "2026-11-19T10:00:00.000",
+                        "+12026-11-19T10:00:00", "-0001-11-19T10:00:00")
                 .flatMap(value -> Stream.of(Arguments.of("from", value), Arguments.of("to", value)));
     }
 

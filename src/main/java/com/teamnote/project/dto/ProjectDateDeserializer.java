@@ -1,12 +1,9 @@
 package com.teamnote.project.dto;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
-import java.time.format.ResolverStyle;
-import java.time.temporal.ChronoField;
 
+import com.teamnote.common.dto.LocalDateParser;
 import tools.jackson.core.JsonParser;
 import tools.jackson.core.JsonToken;
 import tools.jackson.databind.DeserializationContext;
@@ -14,11 +11,6 @@ import tools.jackson.databind.deser.std.StdScalarDeserializer;
 
 final class ProjectDateDeserializer extends StdScalarDeserializer<LocalDate> {
 
-    private static final DateTimeFormatter FORMATTER = new DateTimeFormatterBuilder()
-            .appendValue(ChronoField.YEAR, 4)
-            .appendPattern("-MM-dd")
-            .toFormatter()
-            .withResolverStyle(ResolverStyle.STRICT);
     private static final String FORMAT_ERROR = "프로젝트 날짜는 yyyy-MM-dd 형식의 문자열이어야 합니다.";
 
     ProjectDateDeserializer() {
@@ -33,7 +25,7 @@ final class ProjectDateDeserializer extends StdScalarDeserializer<LocalDate> {
 
         String value = parser.getString();
         try {
-            return LocalDate.parse(value, FORMATTER);
+            return LocalDateParser.parse(value);
         } catch (DateTimeParseException exception) {
             throw context.weirdStringException(value, LocalDate.class, FORMAT_ERROR);
         }
