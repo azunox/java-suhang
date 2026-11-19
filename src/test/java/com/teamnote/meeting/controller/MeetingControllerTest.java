@@ -4,18 +4,24 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
 
+import com.teamnote.common.config.MarkdownConfiguration;
 import com.teamnote.common.exception.GlobalExceptionHandler;
+import com.teamnote.common.service.MarkdownServiceImpl;
 import com.teamnote.meeting.entity.Meeting;
 import com.teamnote.meeting.repository.MeetingRepository;
 import com.teamnote.meeting.service.MeetingServiceImpl;
 import com.teamnote.project.entity.Project;
 import com.teamnote.project.repository.ProjectRepository;
+import org.jsoup.Jsoup;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -23,9 +29,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -68,7 +76,10 @@ class MeetingControllerTest {
 
     @BeforeEach
     void setUp() {
-        MeetingServiceImpl meetingService = new MeetingServiceImpl(meetingRepository, projectRepository);
+        MarkdownConfiguration config = new MarkdownConfiguration();
+        MeetingServiceImpl meetingService = new MeetingServiceImpl(meetingRepository, projectRepository,
+                new MarkdownServiceImpl(config.markdownParser(), config.markdownHtmlRenderer(),
+                        config.markdownHtmlCleaner()));
         mockMvc = MockMvcBuilders.standaloneSetup(new MeetingController(meetingService))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
@@ -102,13 +113,15 @@ class MeetingControllerTest {
     @Test
     void returnsEmptyArrayForExistingProjectWithoutMeetings() throws Exception {
         when(projectRepository.existsById(1L)).thenReturn(true);
-        when(meetingRepository.findAllByProject_IdOrderByStartAtAscIdAsc(1L)).thenReturn(List.of());
+        when(meetingRepository.search(1L, null, null)).thenReturn(List.of());
 
         mockMvc.perform(get(MEETINGS_PATH, 1))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data").isArray())
                 .andExpect(jsonPath("$.data").isEmpty());
+
+        verify(meetingRepository).search(1L, null, null);
     }
 
     @Test
@@ -116,6 +129,7 @@ class MeetingControllerTest {
         when(project.getId()).thenReturn(1L);
         when(savedMeeting.getId()).thenReturn(7L);
         when(savedMeeting.getProject()).thenReturn(project);
+        when(savedMeeting.getMinutesMarkdown()).thenReturn("");
         when(meetingRepository.findByIdAndProject_Id(7L, 1L)).thenReturn(Optional.of(savedMeeting));
 
         mockMvc.perform(get(MEETINGS_PATH + "/{meetingId}", 1, 7))
@@ -293,5 +307,105 @@ class MeetingControllerTest {
     private Meeting existingMeeting() {
         return Meeting.create(project, "기존 회의", LocalDateTime.parse("2026-11-17T09:00:00"),
                 LocalDateTime.parse("2026-11-17T10:00:00"), "기존 회의록");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"2026-11-19T10:00:00", "2026-11-19T09:00:00"})
+    void rejectsEqualOrReversedSearchRange(String to) throws Exception {
+        mockMvc.perform(get(MEETINGS_PATH, 1).param("from", "2026-11-19T10:00:00").param("to", to))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
+        verifyNoInteractions(projectRepository, meetingRepository);
+    }
+
+    @Test
+    void rejectsMalformedSearchDate() throws Exception {
+        mockMvc.perform(get(MEETINGS_PATH, 1).param("from", "invalid"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
+        verifyNoInteractions(projectRepository, meetingRepository);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"2026-11-19T10:00:00Z", "2026-11-19T10:00:00+09:00", "2026-02-30T10:00:00"})
+    void rejectsOffsetAndInvalidCalendarSearchDates(String from) throws Exception {
+        mockMvc.perform(get(MEETINGS_PATH, 1).param("from", from))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
+        verifyNoInteractions(projectRepository, meetingRepository);
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidSearchDateTimes")
+    void rejectsPresentSearchParameterUnlessItContainsStrictSecondPrecision(String parameter, String value)
+            throws Exception {
+        lenient().when(projectRepository.existsById(1L)).thenReturn(true);
+
+        mockMvc.perform(get(MEETINGS_PATH, 1).param(parameter, value))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.error.fields[0].field").value(parameter));
+
+        verifyNoInteractions(projectRepository, meetingRepository);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"from", "to"})
+    void acceptsStrictSearchTimeAndLeavesOnlyOmittedBoundUnset(String parameter) throws Exception {
+        LocalDateTime time = LocalDateTime.parse("2026-11-19T10:00:00");
+        LocalDateTime from = parameter.equals("from") ? time : null;
+        LocalDateTime to = parameter.equals("to") ? time : null;
+        when(projectRepository.existsById(1L)).thenReturn(true);
+        when(meetingRepository.search(1L, from, to)).thenReturn(List.of());
+
+        mockMvc.perform(get(MEETINGS_PATH, 1).param(parameter, "2026-11-19T10:00:00"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").isEmpty());
+
+        verify(meetingRepository).search(1L, from, to);
+    }
+
+    static Stream<Arguments> invalidSearchDateTimes() {
+        return Stream.of("", " ", "2026-11-19T10:00", "2026-11-19T10:00:00.000")
+                .flatMap(value -> Stream.of(Arguments.of("from", value), Arguments.of("to", value)));
+    }
+
+    @Test
+    void returnsRenderedAndSanitizedHtmlWithOriginalMarkdown() throws Exception {
+        String markdown = """
+                # 회의록
+
+                | 담당 | 작업 |
+                | --- | --- |
+                | B | 검색 |
+
+                - 결정 사항
+
+                ```java
+                int count = 1;
+                ```
+
+                [문서](https://example.com)
+                [위험](javascript:alert(1))
+                <script>alert(1)</script>
+                <img src=x onerror=alert(1)>
+                """;
+        Meeting meeting = Meeting.create(project, "회의록", LocalDateTime.parse("2026-11-19T10:00:00"),
+                LocalDateTime.parse("2026-11-19T11:00:00"), markdown);
+        when(project.getId()).thenReturn(1L);
+        when(meetingRepository.findByIdAndProject_Id(7L, 1L)).thenReturn(Optional.of(meeting));
+        var result = mockMvc.perform(get(MEETING_PATH, 1, 7))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.minutesMarkdown").value(markdown))
+                .andExpect(jsonPath("$.data.minutesHtml").value(org.hamcrest.Matchers.containsString("<table>")))
+                .andReturn();
+        String html = tools.jackson.databind.json.JsonMapper.builder().build()
+                .readTree(result.getResponse().getContentAsString()).get("data").get("minutesHtml").asText();
+        org.jsoup.nodes.Document document = Jsoup.parseBodyFragment(html);
+        assertThat(document.select("h1, table, ul, pre code")).hasSize(4);
+        assertThat(document.select("a[href=https://example.com]")).hasSize(1);
+        assertThat(document.select("script, [onerror], [onclick], a[href^=javascript:]")).isEmpty();
     }
 }

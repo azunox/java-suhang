@@ -1,0 +1,766 @@
+No authorization data found. Please use the `postman login` command.
+Refer:https://learning.postman.com/docs/postman-cli/postman-cli-options/#postman-login
+
+Running your collection...
+postman
+
+TEAMNOTE
+
+Folder Content Preview / Markdown 미리보기
+Sub-folder 표가 포함된 Markdown 미리보기
+
+  POST http://127.0.0.1:18082/api/content/preview [200 OK, 403 B, 23 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  헤더와 표 렌더링
+
+Sub-folder 빈 Markdown 미리보기
+
+  POST http://127.0.0.1:18082/api/content/preview [200 OK, 204 B, 5 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  빈 HTML
+
+Sub-folder Markdown 누락
+
+  POST http://127.0.0.1:18082/api/content/preview [400 Bad Request, 341 B, 4 ms]
+  Pass  공통 응답 JSON
+  Pass  공통 오류 코드
+  Pass  HTTP 400
+  Pass  INVALID_REQUEST
+
+Folder Projects / 프로젝트 등록·조회·검색·수정
+Sub-folder 기간이 뒤집힌 프로젝트 등록
+
+  POST http://127.0.0.1:18082/api/projects [400 Bad Request, 286 B, 5 ms]
+  Pass  공통 응답 JSON
+  Pass  공통 오류 코드
+  Pass  HTTP 400
+  Pass  INVALID_REQUEST
+
+Sub-folder 프로젝트 등록
+
+  POST http://127.0.0.1:18082/api/projects [201 Created, 635 B, 7 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 201
+  Pass  이름 정규화·같은 날짜 허용·HTML 일치
+
+Sub-folder 프로젝트 전체 목록
+
+  GET http://127.0.0.1:18082/api/projects [200 OK, 1.54 KB, 9 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  생성된 프로젝트 조회
+  Pass  ID 오름차순
+
+Sub-folder 프로젝트 상세
+
+  GET http://127.0.0.1:18082/api/projects/12 [200 OK, 623 B, 5 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  동적 ID 일치
+  Pass  미리보기와 같은 HTML
+
+Sub-folder 이름·상태 복합 검색
+
+  GET http://127.0.0.1:18082/api/projects?name=postman%201795063336241&status=PLANNED [200 OK, 625 B, 6 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  생성된 프로젝트 조회
+  Pass  일치하는 프로젝트 한 건
+
+Sub-folder LIKE 특수 문자 검색
+
+  GET http://127.0.0.1:18082/api/projects?name=1795063336241_%25%21 [200 OK, 625 B, 5 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  특수 문자가 포함된 프로젝트만 검색
+
+Sub-folder 조건 불일치
+
+  GET http://127.0.0.1:18082/api/projects?name=postman%201795063336241&status=COMPLETED [200 OK, 195 B, 4 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  빈 배열
+
+Sub-folder 빈 상태로 검색
+
+  GET http://127.0.0.1:18082/api/projects?status= [400 Bad Request, 353 B, 4 ms]
+  Pass  공통 응답 JSON
+  Pass  공통 오류 코드
+  Pass  HTTP 400
+  Pass  INVALID_REQUEST
+
+Sub-folder 프로젝트 전체 수정
+
+  PUT http://127.0.0.1:18082/api/projects/12 [200 OK, 384 B, 5 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  동적 ID 일치
+  Pass  수정 값과 원문·HTML 유지
+
+Sub-folder 기간이 뒤집힌 프로젝트 수정
+
+  PUT http://127.0.0.1:18082/api/projects/12 [400 Bad Request, 286 B, 4 ms]
+  Pass  공통 응답 JSON
+  Pass  공통 오류 코드
+  Pass  HTTP 400
+  Pass  INVALID_REQUEST
+
+Sub-folder 잘못된 수정 후 상세 재조회
+
+  GET http://127.0.0.1:18082/api/projects/12 [200 OK, 384 B, 5 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  동적 ID 일치
+  Pass  수정 값과 원문·HTML 유지
+
+Folder Projects / 프로젝트 삭제 제한과 정리
+Sub-folder 완료 업무 생성
+
+  POST http://127.0.0.1:18082/api/projects/12/tasks [201 Created, 391 B, 6 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 201
+
+Sub-folder 과거 회의 생성
+
+  POST http://127.0.0.1:18082/api/projects/12/meetings [201 Created, 361 B, 4 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 201
+
+Sub-folder 업무·회의가 남은 프로젝트 삭제 거절
+
+  DELETE http://127.0.0.1:18082/api/projects/12 [409 Conflict, 333 B, 6 ms]
+  Pass  공통 응답 JSON
+  Pass  공통 오류 코드
+  Pass  HTTP 409
+  Pass  CONFLICT
+
+Sub-folder 완료 업무가 보존됨
+
+  GET http://127.0.0.1:18082/api/projects/12/tasks/11 [200 OK, 379 B, 5 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  동적 ID 일치
+
+Sub-folder 과거 회의가 보존됨
+
+  GET http://127.0.0.1:18082/api/projects/12/meetings/25 [200 OK, 349 B, 3 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  동적 ID 일치
+
+Sub-folder 완료 업무 정리
+
+  DELETE http://127.0.0.1:18082/api/projects/12/tasks/11 [200 OK, 197 B, 4 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  삭제 응답 data가 null
+
+Sub-folder 회의가 남은 프로젝트 삭제 거절
+
+  DELETE http://127.0.0.1:18082/api/projects/12 [409 Conflict, 333 B, 4 ms]
+  Pass  공통 응답 JSON
+  Pass  공통 오류 코드
+  Pass  HTTP 409
+  Pass  CONFLICT
+
+Sub-folder 과거 회의 정리
+
+  DELETE http://127.0.0.1:18082/api/projects/12/meetings/25 [200 OK, 197 B, 3 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  삭제 응답 data가 null
+
+Sub-folder 하위 데이터가 없는 프로젝트 삭제
+
+  DELETE http://127.0.0.1:18082/api/projects/12 [200 OK, 197 B, 4 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  삭제 응답 data가 null
+
+Sub-folder 삭제한 프로젝트 조회
+
+  GET http://127.0.0.1:18082/api/projects/12 [404 Not Found, 303 B, 5 ms]
+  Pass  공통 응답 JSON
+  Pass  공통 오류 코드
+  Pass  HTTP 404
+  Pass  RESOURCE_NOT_FOUND
+
+Folder Tasks
+Sub-folder 준비 / 업무 프로젝트
+
+  POST http://127.0.0.1:18082/api/projects [201 Created, 416 B, 3 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 201
+  Pass  공통 응답
+
+Sub-folder 준비 / 다른 프로젝트
+
+  POST http://127.0.0.1:18082/api/projects [201 Created, 419 B, 4 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 201
+  Pass  공통 응답
+
+Sub-folder 등록 / 지난 미완료
+
+  POST http://127.0.0.1:18082/api/projects/13/tasks [201 Created, 374 B, 5 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 201
+  Pass  공통 응답
+  1. HTML 변환
+
+Sub-folder 등록 / 지난 완료
+
+  POST http://127.0.0.1:18082/api/projects/13/tasks [201 Created, 395 B, 4 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 201
+  Pass  공통 응답
+  2. HTML 변환
+
+Sub-folder 등록 / 오늘 마감
+
+  POST http://127.0.0.1:18082/api/projects/13/tasks [201 Created, 371 B, 6 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 201
+  Pass  공통 응답
+  3. HTML 변환
+
+Sub-folder 등록 / 미래 마감
+
+  POST http://127.0.0.1:18082/api/projects/13/tasks [201 Created, 378 B, 5 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 201
+  Pass  공통 응답
+  4. HTML 변환
+
+Sub-folder 등록 / 다른 소속
+
+  POST http://127.0.0.1:18082/api/projects/14/tasks [201 Created, 371 B, 7 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 201
+  Pass  공통 응답
+
+Sub-folder 검색 / overdue 생략
+
+  GET http://127.0.0.1:18082/api/projects/13/tasks [200 OK, 893 B, 22 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  공통 응답
+  Pass  네 업무만 조회
+
+Sub-folder 검색 / overdue=true
+
+  GET http://127.0.0.1:18082/api/projects/13/tasks?overdue=true [200 OK, 364 B, 5 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  공통 응답
+  Pass  지난 미완료만 조회
+
+Sub-folder 검색 / overdue=false
+
+  GET http://127.0.0.1:18082/api/projects/13/tasks?overdue=false [200 OK, 724 B, 5 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  공통 응답
+  Pass  지난 완료·오늘·미래 조회
+
+Sub-folder 검색 / 조합과 날짜 양쪽 경계
+
+  GET http://127.0.0.1:18082/api/projects/13/tasks?assigneeName=%ED%8C%80%EC%9B%90%20A&status=TODO&dueDateFrom=2026-11-18&dueDateTo=2026-11-19 [200 OK, 530 B, 8 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  공통 응답
+  Pass  경계 포함 AND 조건
+
+Sub-folder 검색 / 빈 결과
+
+  GET http://127.0.0.1:18082/api/projects/13/tasks?assigneeName=Nobody [200 OK, 195 B, 7 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  공통 응답
+  Pass  빈 배열
+
+Sub-folder 검색 / 잘못된 기간
+
+  GET http://127.0.0.1:18082/api/projects/13/tasks?dueDateFrom=2026-11-20&dueDateTo=2026-11-19 [400 Bad Request, 303 B, 3 ms]
+  Pass  공통 응답 JSON
+  Pass  공통 오류 코드
+  Pass  HTTP 400
+  Pass  공통 응답
+  Pass  입력 오류 코드
+
+Sub-folder 검색 / 잘못된 enum
+
+  GET http://127.0.0.1:18082/api/projects/13/tasks?status=UNKNOWN [400 Bad Request, 523 B, 5 ms]
+  Pass  공통 응답 JSON
+  Pass  공통 오류 코드
+  Pass  HTTP 400
+  Pass  공통 응답
+
+Sub-folder 소속 / 상세 차단
+
+  GET http://127.0.0.1:18082/api/projects/13/tasks/16 [404 Not Found, 297 B, 5 ms]
+  Pass  공통 응답 JSON
+  Pass  공통 오류 코드
+  Pass  HTTP 404
+  Pass  공통 응답
+
+Sub-folder 소속 / 수정 차단
+
+  PUT http://127.0.0.1:18082/api/projects/13/tasks/16 [404 Not Found, 297 B, 10 ms]
+  Pass  공통 응답 JSON
+  Pass  공통 오류 코드
+  Pass  HTTP 404
+  Pass  공통 응답
+
+Sub-folder 소속 / 삭제 차단
+
+  DELETE http://127.0.0.1:18082/api/projects/13/tasks/16 [404 Not Found, 297 B, 7 ms]
+  Pass  공통 응답 JSON
+  Pass  공통 오류 코드
+  Pass  HTTP 404
+  Pass  공통 응답
+
+Sub-folder 실패 / 필수값 누락
+
+  POST http://127.0.0.1:18082/api/projects/13/tasks [400 Bad Request, 615 B, 9 ms]
+  Pass  공통 응답 JSON
+  Pass  공통 오류 코드
+  Pass  HTTP 400
+  Pass  공통 응답
+
+Sub-folder 기술 / 표·코드·HTML 정제
+
+  PUT http://127.0.0.1:18082/api/projects/13/tasks/14 [200 OK, 528 B, 5 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  공통 응답
+  5. 표·코드 유지와 위험 링크 제거
+  Pass  원문 보존
+
+Sub-folder 완료 / 최초 DONE 진입
+
+  PUT http://127.0.0.1:18082/api/projects/13/tasks/14 [200 OK, 383 B, 14 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  공통 응답
+  Pass  완료 시각 기록
+
+Sub-folder 완료 / DONE 유지
+
+  PUT http://127.0.0.1:18082/api/projects/13/tasks/14 [200 OK, 383 B, 12 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  공통 응답
+  Pass  완료 시각 보존
+
+Sub-folder 완료 / 완료 해제
+
+  PUT http://127.0.0.1:18082/api/projects/13/tasks/14 [200 OK, 359 B, 5 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  공통 응답
+  Pass  완료 시각 비움
+
+Sub-folder 상세 / 수정 후 재조회
+
+  GET http://127.0.0.1:18082/api/projects/13/tasks/14 [200 OK, 359 B, 3 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  공통 응답
+  Pass  DB 저장 결과
+
+Sub-folder 삭제 / 업무 삭제
+
+  DELETE http://127.0.0.1:18082/api/projects/13/tasks/14 [200 OK, 197 B, 4 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  공통 응답
+  Pass  삭제 응답
+
+Sub-folder 삭제 / 재조회 404
+
+  GET http://127.0.0.1:18082/api/projects/13/tasks/14 [404 Not Found, 297 B, 3 ms]
+  Pass  공통 응답 JSON
+  Pass  공통 오류 코드
+  Pass  HTTP 404
+  Pass  공통 응답
+
+Sub-folder SQL / 통합 초기 데이터 확인
+
+  GET http://127.0.0.1:18082/api/projects/1/tasks [200 OK, 1.33 KB, 6 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  공통 응답
+  6. 다른 팀원 데이터와 표 샘플 유지
+
+Sub-folder 정리 / lateId
+
+  DELETE http://127.0.0.1:18082/api/projects/13/tasks/12 [200 OK, 197 B, 5 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  공통 응답
+
+Sub-folder 정리 / doneId
+
+  DELETE http://127.0.0.1:18082/api/projects/13/tasks/13 [200 OK, 197 B, 4 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  공통 응답
+
+Sub-folder 정리 / futureId
+
+  DELETE http://127.0.0.1:18082/api/projects/13/tasks/15 [200 OK, 197 B, 6 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  공통 응답
+
+Sub-folder 정리 / foreignId
+
+  DELETE http://127.0.0.1:18082/api/projects/14/tasks/16 [200 OK, 197 B, 4 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  공통 응답
+
+Sub-folder 통합 정리 · 업무 프로젝트
+
+  DELETE http://127.0.0.1:18082/api/projects/13 [200 OK, 197 B, 4 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+
+Sub-folder 통합 정리 · 다른 업무 프로젝트
+
+  DELETE http://127.0.0.1:18082/api/projects/14 [200 OK, 197 B, 3 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+
+Folder Meetings
+Sub-folder 준비 · 프로젝트
+
+  POST http://127.0.0.1:18082/api/projects [201 Created, 355 B, 3 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 201
+
+Sub-folder 준비 · 다른 프로젝트
+
+  POST http://127.0.0.1:18082/api/projects [201 Created, 369 B, 4 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 201
+
+Sub-folder 등록 · Markdown 회의
+
+  POST http://127.0.0.1:18082/api/projects/15/meetings [201 Created, 1.07 KB, 6 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 201
+  Pass  제목 정규화
+  Pass  원문 보존
+  Pass  표·코드·제목·안전 링크 보존 및 위험 요소 제한
+
+Sub-folder 상세 · HTML
+
+  GET http://127.0.0.1:18082/api/projects/15/meetings/26 [200 OK, 1.06 KB, 5 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  표·코드·제목·안전 링크 보존 및 위험 요소 제한
+
+Sub-folder 목록 · HTML
+
+  GET http://127.0.0.1:18082/api/projects/15/meetings [200 OK, 1.06 KB, 5 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  등록 ID와 HTML
+
+Sub-folder 준비 · 끝 경계
+
+  POST http://127.0.0.1:18082/api/projects/15/meetings [201 Created, 351 B, 6 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 201
+
+Sub-folder 준비 · 시작 걸침
+
+  POST http://127.0.0.1:18082/api/projects/15/meetings [201 Created, 354 B, 5 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 201
+
+Sub-folder 준비 · 종료 걸침
+
+  POST http://127.0.0.1:18082/api/projects/15/meetings [201 Created, 354 B, 6 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 201
+
+Sub-folder 준비 · 전체 포함
+
+  POST http://127.0.0.1:18082/api/projects/15/meetings [201 Created, 354 B, 5 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 201
+
+Sub-folder 준비 · 시작 경계
+
+  POST http://127.0.0.1:18082/api/projects/15/meetings [201 Created, 354 B, 5 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 201
+
+Sub-folder 검색 · 양쪽 경계
+
+  GET http://127.0.0.1:18082/api/projects/15/meetings?from=2026-11-19T10:00:00&to=2026-11-19T11:00:00 [200 OK, 1.5 KB, 6 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  겹침·정렬·맞닿은 경계 제외
+
+Sub-folder 검색 · from만
+
+  GET http://127.0.0.1:18082/api/projects/15/meetings?from=2026-11-19T11:30:00 [200 OK, 493 B, 5 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  시작 하한
+
+Sub-folder 검색 · to만
+
+  GET http://127.0.0.1:18082/api/projects/15/meetings?to=2026-11-19T09:30:00 [200 OK, 490 B, 4 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  종료 상한
+
+Sub-folder 검색 · 빈 결과
+
+  GET http://127.0.0.1:18082/api/projects/15/meetings?from=2026-11-19T12:00:00 [200 OK, 195 B, 4 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  빈 배열
+
+Sub-folder 검색 · 다른 소속 제외
+
+  GET http://127.0.0.1:18082/api/projects/16/meetings [200 OK, 195 B, 3 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  빈 배열
+
+Sub-folder 실패 · 동일 검색 시각
+
+  GET http://127.0.0.1:18082/api/projects/15/meetings?from=2026-11-19T10:00:00&to=2026-11-19T10:00:00 [400 Bad Request, 297 B, 2 ms]
+  Pass  공통 응답 JSON
+  Pass  공통 오류 코드
+  Pass  HTTP 400
+
+Sub-folder 실패 · 검색 형식
+
+  GET http://127.0.0.1:18082/api/projects/15/meetings?from=wrong [400 Bad Request, 549 B, 3 ms]
+  Pass  공통 응답 JSON
+  Pass  공통 오류 코드
+  Pass  HTTP 400
+
+Sub-folder 실패 · 검색 offset
+
+  GET http://127.0.0.1:18082/api/projects/15/meetings?from=2026-11-19T10:00:00Z [400 Bad Request, 564 B, 3 ms]
+  Pass  공통 응답 JSON
+  Pass  공통 오류 코드
+  Pass  HTTP 400
+
+Sub-folder 실패 · 없는 프로젝트
+
+  GET http://127.0.0.1:18082/api/projects/9223372036854775807/meetings [404 Not Found, 303 B, 4 ms]
+  Pass  공통 응답 JSON
+  Pass  공통 오류 코드
+  Pass  HTTP 404
+
+Sub-folder 실패 · 다른 소속 상세
+
+  GET http://127.0.0.1:18082/api/projects/16/meetings/26 [404 Not Found, 297 B, 2 ms]
+  Pass  공통 응답 JSON
+  Pass  공통 오류 코드
+  Pass  HTTP 404
+
+Sub-folder 실패 · 다른 소속 수정
+
+  PUT http://127.0.0.1:18082/api/projects/16/meetings/26 [404 Not Found, 297 B, 2 ms]
+  Pass  공통 응답 JSON
+  Pass  공통 오류 코드
+  Pass  HTTP 404
+
+Sub-folder 실패 · 다른 소속 삭제
+
+  DELETE http://127.0.0.1:18082/api/projects/16/meetings/26 [404 Not Found, 297 B, 3 ms]
+  Pass  공통 응답 JSON
+  Pass  공통 오류 코드
+  Pass  HTTP 404
+
+Sub-folder 실패 · 필수값 누락
+
+  PUT http://127.0.0.1:18082/api/projects/15/meetings/26 [400 Bad Request, 550 B, 2 ms]
+  Pass  공통 응답 JSON
+  Pass  공통 오류 코드
+  Pass  HTTP 400
+
+Sub-folder 실패 · 동일 회의 시각
+
+  PUT http://127.0.0.1:18082/api/projects/15/meetings/26 [400 Bad Request, 297 B, 4 ms]
+  Pass  공통 응답 JSON
+  Pass  공통 오류 코드
+  Pass  HTTP 400
+
+Sub-folder 실패 뒤 원본 보존
+
+  GET http://127.0.0.1:18082/api/projects/15/meetings/26 [200 OK, 1.06 KB, 4 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  원본 제목·시각·원문 보존
+
+Sub-folder 실패 · 시각 배열
+
+  POST http://127.0.0.1:18082/api/projects/15/meetings [400 Bad Request, 273 B, 2 ms]
+  Pass  공통 응답 JSON
+  Pass  공통 오류 코드
+  Pass  HTTP 400
+
+Sub-folder 실패 · 빈 제목
+
+  POST http://127.0.0.1:18082/api/projects/15/meetings [400 Bad Request, 336 B, 3 ms]
+  Pass  공통 응답 JSON
+  Pass  공통 오류 코드
+  Pass  HTTP 400
+
+Sub-folder 실패 · 삭제 경로 ID
+
+  DELETE http://127.0.0.1:18082/api/projects/15/meetings/0 [400 Bad Request, 273 B, 3 ms]
+  Pass  공통 응답 JSON
+  Pass  공통 오류 코드
+  Pass  HTTP 400
+
+Sub-folder 삭제 제한 · 하위 회의 존재
+
+  DELETE http://127.0.0.1:18082/api/projects/15 [409 Conflict, 333 B, 4 ms]
+  Pass  공통 응답 JSON
+  Pass  공통 오류 코드
+  Pass  HTTP 409
+
+Sub-folder 수정 · 날짜 넘김·빈 회의록
+
+  PUT http://127.0.0.1:18082/api/projects/15/meetings/26 [200 OK, 339 B, 4 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  전체 수정 및 빈 HTML
+
+Sub-folder 수정 · HTML 재생성
+
+  PUT http://127.0.0.1:18082/api/projects/15/meetings/26 [200 OK, 1.07 KB, 4 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  표·코드·제목·안전 링크 보존 및 위험 요소 제한
+
+Sub-folder 삭제 · 정상
+
+  DELETE http://127.0.0.1:18082/api/projects/15/meetings/26 [200 OK, 197 B, 2 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+  Pass  삭제 공통 응답
+
+Sub-folder 삭제 · 상세 재조회
+
+  GET http://127.0.0.1:18082/api/projects/15/meetings/26 [404 Not Found, 297 B, 2 ms]
+  Pass  공통 응답 JSON
+  Pass  공통 오류 코드
+  Pass  HTTP 404
+
+Sub-folder 삭제 · 재삭제
+
+  DELETE http://127.0.0.1:18082/api/projects/15/meetings/26 [404 Not Found, 297 B, 3 ms]
+  Pass  공통 응답 JSON
+  Pass  공통 오류 코드
+  Pass  HTTP 404
+
+Sub-folder 정리 · bboundaryEnd
+
+  DELETE http://127.0.0.1:18082/api/projects/15/meetings/27 [200 OK, 197 B, 3 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+
+Sub-folder 정리 · bcrossStart
+
+  DELETE http://127.0.0.1:18082/api/projects/15/meetings/28 [200 OK, 197 B, 2 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+
+Sub-folder 정리 · bcrossEnd
+
+  DELETE http://127.0.0.1:18082/api/projects/15/meetings/29 [200 OK, 197 B, 2 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+
+Sub-folder 정리 · benclosing
+
+  DELETE http://127.0.0.1:18082/api/projects/15/meetings/30 [200 OK, 197 B, 2 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+
+Sub-folder 정리 · bboundaryStart
+
+  DELETE http://127.0.0.1:18082/api/projects/15/meetings/31 [200 OK, 197 B, 2 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+
+Sub-folder 정리 · 프로젝트
+
+  DELETE http://127.0.0.1:18082/api/projects/15 [200 OK, 197 B, 3 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+
+Sub-folder 정리 · 다른 프로젝트
+
+  DELETE http://127.0.0.1:18082/api/projects/16 [200 OK, 197 B, 3 ms]
+  Pass  공통 응답 JSON
+  Pass  HTTP 200
+
+-------------------------------------------------------------------
+|                         |          executed |            failed |
+--------------------------+-------------------+--------------------
+|              iterations |                 1 |                 0 |
+--------------------------+-------------------+--------------------
+|                requests |                97 |                 0 |
+--------------------------+-------------------+--------------------
+|            test-scripts |               194 |                 0 |
+--------------------------+-------------------+--------------------
+|      prerequest-scripts |                33 |                 0 |
+--------------------------+-------------------+--------------------
+|              assertions |               312 |                 6 |
+-------------------------------------------------------------------
+| total run duration: 1782 ms                                     |
+-------------------------------------------------------------------
+| total data received: 24.79 KB (approx)                          |
+-------------------------------------------------------------------
+| average response time: 4 ms [min: 2 ms, max: 23 ms, s.d.: 3 ms] |
+-------------------------------------------------------------------
+
+  #  failure         detail
+
+ 1.  AssertionError  HTML 변환
+                     expected undefined to deeply equal '<h1>업무</h1>'
+                     at assertion:2 in test-script
+                     inside "Tasks / 등록 / 지난 미완료"
+
+ 2.  AssertionError  HTML 변환
+                     expected undefined to deeply equal '<h1>업무</h1>'
+                     at assertion:2 in test-script
+                     inside "Tasks / 등록 / 지난 완료"
+
+ 3.  AssertionError  HTML 변환
+                     expected undefined to deeply equal '<h1>업무</h1>'
+                     at assertion:2 in test-script
+                     inside "Tasks / 등록 / 오늘 마감"
+
+ 4.  AssertionError  HTML 변환
+                     expected undefined to deeply equal '<h1>업무</h1>'
+                     at assertion:2 in test-script
+                     inside "Tasks / 등록 / 미래 마감"
+
+ 5.  AssertionError  표·코드 유지와 위험 링크 제거
+                     the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+                     at assertion:2 in test-script
+                     inside "Tasks / 기술 / 표·코드·HTML 정제"
+
+ 6.  TypeError       다른 팀원 데이터와 표 샘플 유지
+                     Cannot read properties of undefined (reading 'includes')
+                     at assertion:2 in test-script
+                     inside "Tasks / SQL / 통합 초기 데이터 확인"
+Postman credentials are required for publishing run details to Postman cloud.
+Please specify it by using the `postman login` command
