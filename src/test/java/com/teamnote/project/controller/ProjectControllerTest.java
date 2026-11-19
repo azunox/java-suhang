@@ -9,6 +9,7 @@ import com.teamnote.common.exception.InvalidRequestException;
 import com.teamnote.common.exception.ResourceNotFoundException;
 import com.teamnote.project.dto.ProjectCreateRequest;
 import com.teamnote.project.dto.ProjectResponse;
+import com.teamnote.project.dto.ProjectSearchRequest;
 import com.teamnote.project.entity.ProjectStatus;
 import com.teamnote.project.service.ProjectService;
 import org.junit.jupiter.api.BeforeEach;
@@ -153,7 +154,7 @@ class ProjectControllerTest {
 
     @Test
     void returnsProjectList() throws Exception {
-        when(projectService.findAll()).thenReturn(List.of(response()));
+        when(projectService.findAll(new ProjectSearchRequest(null, null))).thenReturn(List.of(response()));
 
         mockMvc.perform(get("/api/projects"))
                 .andExpect(status().isOk())
@@ -164,13 +165,34 @@ class ProjectControllerTest {
 
     @Test
     void returnsEmptyArrayWhenNoProjectsExist() throws Exception {
-        when(projectService.findAll()).thenReturn(List.of());
+        when(projectService.findAll(new ProjectSearchRequest("REST", "PLANNED"))).thenReturn(List.of());
 
-        mockMvc.perform(get("/api/projects"))
+        mockMvc.perform(get("/api/projects").param("name", "REST").param("status", "PLANNED"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data").isArray())
                 .andExpect(jsonPath("$.data").isEmpty());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"UNKNOWN", "", "   "})
+    void rejectsInvalidSearchStatus(String projectStatus) throws Exception {
+        mockMvc.perform(get("/api/projects").param("status", projectStatus))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.error.fields[0].field").value("status"));
+
+        verifyNoInteractions(projectService);
+    }
+
+    @Test
+    void rejectsTooLongSearchName() throws Exception {
+        mockMvc.perform(get("/api/projects").param("name", "가".repeat(121)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.error.fields[0].field").value("name"));
+
+        verifyNoInteractions(projectService);
     }
 
     @Test

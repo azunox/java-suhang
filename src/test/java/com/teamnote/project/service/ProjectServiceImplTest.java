@@ -10,6 +10,7 @@ import com.teamnote.common.exception.ResourceNotFoundException;
 import com.teamnote.common.service.MarkdownServiceImpl;
 import com.teamnote.project.dto.ProjectCreateRequest;
 import com.teamnote.project.dto.ProjectResponse;
+import com.teamnote.project.dto.ProjectSearchRequest;
 import com.teamnote.project.entity.Project;
 import com.teamnote.project.entity.ProjectStatus;
 import com.teamnote.project.repository.ProjectRepository;
@@ -80,21 +81,31 @@ class ProjectServiceImplTest {
     @Test
     void returnsProjectDtosUsingDatabaseIdOrder() {
         List<Project> projects = List.of(storedProject(1L, "첫 프로젝트"), storedProject(2L, "두 번째 프로젝트"));
-        when(projectRepository.findAllProjects()).thenReturn(projects);
+        when(projectRepository.search(null, null)).thenReturn(projects);
 
-        List<ProjectResponse> responses = projectService.findAll();
+        List<ProjectResponse> responses = projectService.findAll(new ProjectSearchRequest(null, null));
 
         assertThat(responses).extracting(ProjectResponse::id).containsExactly(1L, 2L);
         assertThat(responses).extracting(ProjectResponse::descriptionHtml).containsExactly(HTML, HTML);
         assertThat(responses).extracting(ProjectResponse::name).containsExactly("첫 프로젝트", "두 번째 프로젝트");
-        verify(projectRepository).findAllProjects();
+        verify(projectRepository).search(null, null);
     }
 
     @Test
     void returnsEmptyListWhenNoProjectsExist() {
-        when(projectRepository.findAllProjects()).thenReturn(List.of());
+        when(projectRepository.search(null, ProjectStatus.PLANNED)).thenReturn(List.of());
 
-        assertThat(projectService.findAll()).isEmpty();
+        assertThat(projectService.findAll(new ProjectSearchRequest("   ", "PLANNED"))).isEmpty();
+        verify(projectRepository).search(null, ProjectStatus.PLANNED);
+    }
+
+    @Test
+    void escapesNameWildcardsAndPassesStatusToQuery() {
+        ProjectSearchRequest request = new ProjectSearchRequest("  API_50%!  ", "IN_PROGRESS");
+
+        projectService.findAll(request);
+
+        verify(projectRepository).search("%API!_50!%!!%", ProjectStatus.IN_PROGRESS);
     }
 
     @Test

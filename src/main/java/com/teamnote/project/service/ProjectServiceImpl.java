@@ -6,6 +6,7 @@ import com.teamnote.common.exception.ResourceNotFoundException;
 import com.teamnote.common.service.MarkdownService;
 import com.teamnote.project.dto.ProjectCreateRequest;
 import com.teamnote.project.dto.ProjectResponse;
+import com.teamnote.project.dto.ProjectSearchRequest;
 import com.teamnote.project.entity.Project;
 import com.teamnote.project.repository.ProjectRepository;
 import org.springframework.stereotype.Service;
@@ -37,8 +38,8 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Override
-    public List<ProjectResponse> findAll() {
-        return projectRepository.findAllProjects().stream()
+    public List<ProjectResponse> findAll(ProjectSearchRequest request) {
+        return projectRepository.search(toNamePattern(request.name()), request.projectStatus()).stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -48,6 +49,14 @@ public class ProjectServiceImpl implements ProjectService {
         Project project = projectRepository.findProjectById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("프로젝트를 찾을 수 없습니다."));
         return toResponse(project);
+    }
+
+    private String toNamePattern(String name) {
+        if (name == null || name.isBlank()) {
+            return null;
+        }
+        String escapedName = name.strip().replace("!", "!!").replace("%", "!%").replace("_", "!_");
+        return "%" + escapedName + "%";
     }
 
     private ProjectResponse toResponse(Project project) {

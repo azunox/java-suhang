@@ -5,12 +5,14 @@ import java.util.List;
 import com.teamnote.common.response.ApiResponse;
 import com.teamnote.project.dto.ProjectCreateRequest;
 import com.teamnote.project.dto.ProjectResponse;
+import com.teamnote.project.dto.ProjectSearchRequest;
 import com.teamnote.project.service.ProjectService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -33,8 +35,8 @@ public class ProjectController {
     }
 
     @GetMapping
-    public ApiResponse<List<ProjectResponse>> findAll() {
-        return ApiResponse.success(projectService.findAll());
+    public ApiResponse<List<ProjectResponse>> findAll(@Valid @ModelAttribute ProjectSearchRequest request) {
+        return ApiResponse.success(projectService.findAll(request));
     }
 
     @GetMapping("/{projectId}")
