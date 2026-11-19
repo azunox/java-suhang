@@ -42,7 +42,7 @@ POST와 PUT은 동일한 필수 필드를 받는다. PUT은 전체 수정이다.
 
 `descriptionHtml`은 공통 `MarkdownService.render(String markdown)`으로 생성한다. 기존 Parser → HtmlRenderer → Cleaner Bean을 주입받아 Markdown → HTML 변환 → jsoup 정제 순서로 처리한다. 원문은 그대로 저장하며 표·코드는 보존하고 위험 HTML·URL은 제한한다. 빈 원문의 HTML은 빈 문자열이다. 목록·상세·등록·수정 응답에 동일하게 적용한다.
 
-최신 main에 공통 Service가 없어 업무 연결의 선행 의존성으로 최소 구현을 포함했다. 팀장은 이 Service를 미리보기·프로젝트에, B는 회의록에 재사용하면 된다. 이 변경은 공통 HTML 정책·Bean·라이브러리 버전·팀장/B API를 바꾸지 않는다.
+기준 main에 공통 Service가 없어 업무 연결의 선행 의존성으로 포함했다. PR 준비 시 팀장 PR #7의 `MarkdownService` 인터페이스·`MarkdownServiceImpl`과 파일 내용을 동일하게 맞췄다. 팀장·B는 같은 `render(String)` 계약을 재사용한다. 이 변경은 공통 HTML 정책·Bean·라이브러리 버전·팀장/B API를 바꾸지 않는다.
 
 ## 검색
 

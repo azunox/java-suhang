@@ -55,7 +55,7 @@ Service는 Mockito, Controller는 standalone MockMvc 검증이다. Repository �
 - 판단: 원문을 변경하지 않고 출력 시 변환한다. 도메인별 Parser·정제 정책 복제를 피한다. 기존 공통 Bean을 재사용하므로 라이브러리 버전과 허용 목록을 바꾸지 않는다.
 - 근거: API 통합 테스트에서 표·코드·정상 HTTPS 링크 보존, script 태그 이스케이프, javascript URL 제거, 빈 원문과 재조회 HTML을 확인했다. Newman 실호출에서도 같은 동작을 확인했다.
 - 추가 기술: commonmark-java와 GFM Tables는 표·코드 변환, jsoup은 허용 목록에 따른 HTML 정제에 사용했다. 의존성 추가만 한 결과와 실제 업무 API 사용 결과를 구분한다.
-- 팀장 공통 Service가 main에 없어 최소 구현을 선행 의존성으로 포함했다. 이 부분을 A의 단독 도메인 기능으로 부풀리거나 팀장·B API까지 구현했다고 기록하지 않는다.
+- 기준 main에 공통 Service가 없어 선행 의존성으로 포함했고, PR 준비 시 팀장 PR #7의 인터페이스·구현체와 파일 내용을 동일하게 맞췄다. 이 부분을 A의 단독 도메인 기능으로 부풀리거나 팀장·B API까지 구현했다고 기록하지 않는다.
 
 ### 2. 검색 JPQL의 실제 DB 검증과 완료 상태 실호출
 

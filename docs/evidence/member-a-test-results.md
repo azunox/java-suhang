@@ -13,3 +13,5 @@
 총 42건 통과. Repository 및 API 통합 테스트는 실제 H2와 Spring Bean을 사용하며 테스트 트랜잭션은 롤백한다. 별도 JAR 실행 및 Newman 결과로 HTTP 응답과 커밋 후 재조회를 검증했다.
 
 통합 SQL 추가 후 `./gradlew bootJar`도 성공했고, local 프로필로 스키마와 SQL 초기화 및 서버 기동을 확인했다. 전체 팀 API의 검증 완료를 뜻하지 않는다.
+
+PR 준비 시 팀장 PR #7의 공통 MarkdownService 인터페이스·구현체와 동일하게 맞춘 뒤 같은 명령을 재실행하여 42건 통과와 bootJar 성공을 확인했다. Newman 원본은 계약 정렬 전 실행 자료이며, render 본문과 HTML 정책은 동일하다.

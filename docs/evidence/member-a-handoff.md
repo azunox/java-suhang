@@ -2,12 +2,14 @@
 
 ## 팀장: 공통 Markdown 계약
 
-- 파일: `src/main/java/com/teamnote/common/service/MarkdownService.java`
+- 인터페이스: `src/main/java/com/teamnote/common/service/MarkdownService.java`
+- 구현체: `src/main/java/com/teamnote/common/service/MarkdownServiceImpl.java`
+- PR 준비 시 팀장 PR #7 브랜치의 두 파일과 내용을 동일하게 맞췄다. A의 독자 구현으로 보고하지 않는다.
 - 생성자 주입: 기존 Parser, HtmlRenderer, Cleaner Bean.
 - 호출: `String render(String markdown)`; 입력은 DTO·Entity에서 null을 허용하지 않음. 빈 문자열 출력은 빈 문자열.
 - 출력: commonmark HTML 변환 후 jsoup 정제한 body fragment. 저장 원문은 변경하지 않음.
 - A 응답은 `TaskResponse.descriptionHtml`에 연결 완료. 팀장은 프로젝트·미리보기, B는 minutesHtml에 같은 Service를 재사용할 수 있다.
-- 선행 의존성으로 최소 구현을 포함했으며 팀장·회의의 API·DTO·공통 설정·스키마는 변경하지 않았다. 기존 팀장 Service가 별도로 있으면 이 계약과 맞춰 하나만 남긴다.
+- 선행 의존성으로 최소 구현을 포함했으며 팀장·회의의 API·DTO·공통 설정·스키마는 변경하지 않았다. 팀장 PR #7과 병합할 때 같은 인터페이스·구현체를 한 벌만 유지한다.
 
 ## 팀원 B: 업무 Postman 통합
 
