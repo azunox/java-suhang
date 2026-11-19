@@ -10,6 +10,7 @@ import com.teamnote.task.dto.TaskUpdateRequest;
 import com.teamnote.task.service.TaskService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -33,6 +34,9 @@ public class TaskController {
     }
 
     @PostMapping
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "201", description = "업무 등록 성공", useReturnTypeSchema = true
+    )
     public ResponseEntity<ApiResponse<TaskResponse>> create(
             @PathVariable @Positive Long projectId,
             @Valid @RequestBody TaskCreateRequest request
@@ -44,7 +48,7 @@ public class TaskController {
     @GetMapping
     public ApiResponse<List<TaskResponse>> findAll(
             @PathVariable @Positive Long projectId,
-            @Valid @ModelAttribute TaskSearchRequest request
+            @Valid @ModelAttribute @ParameterObject TaskSearchRequest request
     ) {
         return ApiResponse.success(taskService.findAll(projectId, request));
     }

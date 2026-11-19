@@ -10,6 +10,7 @@ import com.teamnote.project.dto.ProjectUpdateRequest;
 import com.teamnote.project.service.ProjectService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -33,12 +34,17 @@ public class ProjectController {
     }
 
     @PostMapping
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "201", description = "프로젝트 등록 성공", useReturnTypeSchema = true
+    )
     public ResponseEntity<ApiResponse<ProjectResponse>> create(@Valid @RequestBody ProjectCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(projectService.create(request)));
     }
 
     @GetMapping
-    public ApiResponse<List<ProjectResponse>> findAll(@Valid @ModelAttribute ProjectSearchRequest request) {
+    public ApiResponse<List<ProjectResponse>> findAll(
+            @Valid @ModelAttribute @ParameterObject ProjectSearchRequest request
+    ) {
         return ApiResponse.success(projectService.findAll(request));
     }
 

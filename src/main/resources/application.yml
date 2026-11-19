@@ -12,3 +12,6 @@ spring:
 server:
   address: 127.0.0.1
   port: ${SERVER_PORT:8080}
+
+springdoc:
+  paths-to-match: /api/**
