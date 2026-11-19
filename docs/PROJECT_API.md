@@ -1,16 +1,18 @@
-# 프로젝트 등록·조회와 공통 예외 사용법
+# 프로젝트 API와 공통 기능 사용법
 
-팀장 명세의 커밋 1 구현 범위다. 프로젝트 등록·목록·상세와 공통 도메인 예외를 사용할 수 있다.
+프로젝트 CRUD·조건 검색, 공통 도메인 예외, Markdown 미리보기를 사용할 수 있다.
 
 ## 프로젝트 API
 
 | Method | Endpoint | 성공 응답 |
 | --- | --- | --- |
 | POST | `/api/projects` | 201, `ApiResponse<ProjectResponse>` |
-| GET | `/api/projects` | 200, `ApiResponse<List<ProjectResponse>>` |
+| GET | `/api/projects?name={name}&status={status}` | 200, `ApiResponse<List<ProjectResponse>>`, 조건 선택 |
 | GET | `/api/projects/{projectId}` | 200, `ApiResponse<ProjectResponse>` |
+| PUT | `/api/projects/{projectId}` | 200, `ApiResponse<ProjectResponse>` |
+| DELETE | `/api/projects/{projectId}` | 200, `ApiResponse<Void>` |
 
-등록 요청 예시:
+등록·전체 수정의 공통 요청 예시.
 
 ```json
 {
@@ -26,10 +28,24 @@
 - 설명은 빈 문자열을 허용하고 원문의 공백·줄바꿈을 보존한다.
 - 기간은 `startDate <= endDate`다. 같은 날짜와 과거 날짜를 허용하고 상태를 날짜로 자동 변경하지 않는다.
 - 상태는 `PLANNED`, `IN_PROGRESS`, `COMPLETED` 중 하나다.
-- 응답의 `data`는 `id`, `name`, `descriptionMarkdown`, `startDate`, `endDate`, `status`를 포함한다. 생성된 ID는 `data.id`에서 확인한다.
-- 목록은 DB에서 `id ASC`로 정렬한다. 결과가 없으면 `data: []`다.
-- 상세의 ID는 양수다. 형식 오류·0 이하 값은 400, 존재하지 않는 ID는 404다.
-- 수정·삭제·조건 검색은 커밋 2, `descriptionHtml`·Markdown 미리보기는 커밋 3에서 추가할 예정이다.
+- 응답의 `data`는 `id`, `name`, `descriptionMarkdown`, `descriptionHtml`, `startDate`, `endDate`, `status`를 포함한다. 생성된 ID는 `data.id`에서 확인한다.
+- `GET /api/projects?name=REST&status=IN_PROGRESS`는 대소문자를 구분하지 않는 이름 부분 검색과 상태를 AND로 적용한다. 이름은 최대 120자이며 앞뒤 공백을 제거한다. 빈 이름은 조건에서 제외한다. 상태는 생략하거나 허용된 세 값 중 하나를 지정한다. 목록은 `id ASC`이며 일치하는 데이터가 없으면 `data: []`다.
+- 이름의 `%`, `_`, `!`는 문자 그대로 검색된다. URL에서는 퍼센트를 `%25`로 인코딩한다.
+- 상세·수정·삭제의 ID는 양수다. 형식 오류·0 이하 값은 400, 존재하지 않는 ID는 404다.
+- PUT에서 기간 오류가 발생하면 400을 반환하며 기존 값은 유지된다.
+- 완료 업무나 과거 회의도 프로젝트 삭제를 제한한다. 하위 데이터가 하나라도 있으면 409를 반환한다. 하위 데이터를 정리한 후 DELETE에 성공하면 `{"success":true,"data":null,"error":null}`을 반환한다.
+
+## 공통 Markdown과 미리보기
+
+`POST /api/content/preview`에 `Content-Type: application/json`으로 요청한다.
+
+```json
+{"markdown":"# TEAMNOTE"}
+```
+
+성공 시 200과 `{"success":true,"data":{"html":"<h1>TEAMNOTE</h1>"},"error":null}`을 반환한다. 빈 문자열은 빈 HTML로 변환하고, 필드 누락이나 null은 400 / `INVALID_REQUEST`로 처리한다. 미리보기는 DB에 데이터를 저장하지 않는다.
+
+업무·회의 Service에서는 생성자로 `com.teamnote.common.service.MarkdownService`를 주입받아 응답 DTO를 만들 때 `markdownService.render(원문)`을 호출한다. 업무는 `descriptionHtml`, 회의는 `minutesHtml`에 결과를 담는다. 프로젝트와 미리보기는 같은 구현을 사용한다. commonmark-java로 GFM 표를 포함한 Markdown을 변환하고 jsoup으로 HTML을 정제한다.
 
 ## 공통 예외
 
@@ -44,7 +60,7 @@
 Service에서 대상이 없을 때의 사용 예시:
 
 ```java
-Project project = projectRepository.findById(projectId)
+Project project = projectRepository.findProjectById(projectId)
         .orElseThrow(() -> new ResourceNotFoundException("프로젝트를 찾을 수 없습니다."));
 ```
 
@@ -89,16 +105,12 @@ Long projectId = savedProject.getId();
 
 ## 관련 검증
 
-관련 단위 테스트를 선택하는 명령:
+Project와 공통 기능 테스트를 실행한다. ProjectRepositoryTest와 ProjectPersistenceTest는 H2에 연결한다.
 
 ```bash
 ./gradlew test \
-  --tests com.teamnote.common.exception.GlobalExceptionHandlerTest \
-  --tests com.teamnote.project.entity.ProjectTest \
-  --tests com.teamnote.project.service.ProjectServiceImplTest \
-  --tests com.teamnote.project.controller.ProjectControllerTest
+  --tests 'com.teamnote.project.*' \
+  --tests 'com.teamnote.common.*'
 ```
 
-2026-11-10 작업에서 각 대상을 선택 실행한 결과는 공통 예외 8건, Entity 12건, Service 6건, Controller 18건 통과다. Service 테스트의 초기 Mockito 설정 오류 2건을 수정하고 해당 클래스만 재실행했다. Java 21에서 main·test 소스 컴파일도 완료했다.
-
-이 검증은 MockMvc·Mockito와 실제 Entity 로직을 사용한다. 실제 DB 저장·트랜잭션·서버 기동·Postman·팀 전체 통합 검증은 실행하지 않았다. DB 검증이 필요하면 저장소 `AGENTS.md`에 따라 목적과 실행 범위를 확인한다.
+로컬 HTTP 시나리오와 실제 검증 결과는 [팀장 검증 기록](evidence/team-leader.md)을 참고한다.

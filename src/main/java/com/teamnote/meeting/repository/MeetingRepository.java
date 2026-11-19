@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface MeetingRepository extends JpaRepository<Meeting, Long> {
 
+    boolean existsByProject_Id(Long projectId);
+
     List<Meeting> findAllByProject_IdOrderByStartAtAscIdAsc(Long projectId);
 
     Optional<Meeting> findByIdAndProject_Id(Long meetingId, Long projectId);

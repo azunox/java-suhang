@@ -8,6 +8,7 @@ public record ProjectResponse(
         Long id,
         String name,
         String descriptionMarkdown,
+        String descriptionHtml,
         LocalDate startDate,
         LocalDate endDate,
         ProjectStatus status
