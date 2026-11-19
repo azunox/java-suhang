@@ -63,13 +63,22 @@ Service는 Mockito, Controller는 standalone MockMvc 검증이다. Repository �
 - 기존 JPQL을 변경하지 않고 실제 H2에서 실행해 담당자·상태·마감일 AND 검색, 양쪽/한쪽 날짜 경계, 날짜·ID 정렬, 소속 범위, 빈 결과를 확인했다.
 - 고정 기준일 2026-11-19에 overdue 생략·true·false를 각각 실행했다. 오늘 마감과 지난 완료 업무는 overdue=true에서 제외한다.
 - MockMvc는 실제 Service·Repository·공통 라이브러리를 연결한다. 별도 Newman 실행은 생성→완료→완료 유지→완료 해제→재조회→삭제→404를 요청별 트랜잭션으로 확인한다.
-- 결과: 업무 자동화 42건 통과, JAR 빌드 성공, Newman 요청 30개·검증 78개 통과. [자동화 요약](member-a-test-results.md), [HTTP 실행 요약](../postman/member-a-summary.md).
+- 결과: 리뷰 반영 후 업무 자동화 62건 통과, JAR 빌드 성공, Newman 요청 39개·검증 99개 통과. [자동화 요약](member-a-test-results.md), [HTTP 실행 요약](../postman/member-a-summary.md).
 
 ### 3. SQL·Postman 통합 자료
 
 - 최신 main의 프로젝트·회의 SQL을 유지하고 오늘·미래·지난 완료 샘플 3개를 추가했다. IDENTITY/FK 순서와 enum·completedAt 관계를 유지했다.
-- local 프로필의 실제 서버 기동으로 전체 SQL 실행을 확인했다. Postman collection은 초기 프로젝트 1의 팀장·A·B 업무와 표 HTML을 확인한다.
+- local 프로필의 실제 서버 기동으로 전체 SQL 실행을 확인했다. Postman collection은 초기 프로젝트 1의 팀장·A·B 업무와 표 HTML, 추가한 경계 샘플 3개의 날짜·상태·완료 시각을 확인한다.
 - B에게 넘길 collection·environment·실행 원본 JSON과 공통 계약은 [전달 자료](member-a-handoff.md)에 정리했다. 실제 메시지 전송은 하지 않았다.
+
+## PR #8 리뷰 반영
+
+- 최신 main `ccf12c5`를 병합하고 공통 서비스·프로젝트 삭제 API를 재사용했다.
+- `TaskDateDeserializer`, `TaskStatusDeserializer`를 등록·수정 DTO에 적용해 JSON 문자열만 받도록 했다. 검색 status는 `@Pattern`으로 생략만 허용하고 빈 값·공백을 거부한다.
+- TaskResponse에서 descriptionHtml을 원문 바로 뒤로 옮기고 Service 응답 매핑 인자를 한 줄씩 정렬했다.
+- TaskRepositoryTest를 `@DataJpaTest`와 생성자 주입으로 바꾸고 기존 검색 사례를 유지했다.
+- README의 초기 업무 11개와 업무 API 문서의 프로젝트 삭제 설명을 최신 상태로 맞췄다. Newman은 초기 SQL 경계 샘플 3개와 리뷰의 비정상 입력을 검사하고 검증용 프로젝트까지 정리한다.
+- 결과는 자동화 62건·JAR 빌드 성공, HTTP 39요청·99검증 통과다. 실제 시간·날짜를 바꾸거나 전체 팀 검증을 완료한 것으로 기록하지 않았다.
 
 ## 제출 전에 직접 확인할 항목
 

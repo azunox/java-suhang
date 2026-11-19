@@ -15,22 +15,24 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest
-@Transactional
+@DataJpaTest
 class TaskRepositoryTest {
 
     private static final LocalDate TODAY = LocalDate.of(2026, 11, 19);
     private static final LocalDateTime NOW = TODAY.atTime(10, 0);
 
+    private final TaskRepository tasks;
+    private final ProjectRepository projects;
+
     @Autowired
-    private TaskRepository tasks;
-    @Autowired
-    private ProjectRepository projects;
+    TaskRepositoryTest(TaskRepository tasks, ProjectRepository projects) {
+        this.tasks = tasks;
+        this.projects = projects;
+    }
 
     private Project project;
     private Project other;
