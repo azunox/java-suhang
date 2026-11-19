@@ -65,7 +65,7 @@ public class TaskServiceImpl implements TaskService {
             }
         }
         LocalDate today = LocalDate.now(ZONE);
-        return taskRepository.search(projectId, assigneeName, request.status(), request.dueDateFrom(),
+        return taskRepository.search(projectId, assigneeName, request.taskStatus(), request.dueDateFrom(),
                         request.dueDateTo(), request.overdue(), today, TaskStatus.DONE).stream()
                 .map(this::toResponse)
                 .toList();
@@ -98,8 +98,16 @@ public class TaskServiceImpl implements TaskService {
     }
 
     private TaskResponse toResponse(Task task) {
-        return new TaskResponse(task.getId(), task.getProject().getId(), task.getTitle(),
-                task.getDescriptionMarkdown(), task.getAssigneeName(), task.getDueDate(),
-                task.getStatus(), task.getCompletedAt(), markdownService.render(task.getDescriptionMarkdown()));
+        return new TaskResponse(
+                task.getId(),
+                task.getProject().getId(),
+                task.getTitle(),
+                task.getDescriptionMarkdown(),
+                markdownService.render(task.getDescriptionMarkdown()),
+                task.getAssigneeName(),
+                task.getDueDate(),
+                task.getStatus(),
+                task.getCompletedAt()
+        );
     }
 }

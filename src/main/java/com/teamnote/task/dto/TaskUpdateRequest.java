@@ -6,6 +6,7 @@ import com.teamnote.task.entity.TaskStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import tools.jackson.databind.annotation.JsonDeserialize;
 
 public record TaskUpdateRequest(
         @NotBlank(message = "업무 제목은 필수입니다.")
@@ -17,8 +18,10 @@ public record TaskUpdateRequest(
         @Size(max = 80, message = "담당자 이름은 80자 이하여야 합니다.")
         String assigneeName,
         @NotNull(message = "마감일은 필수입니다.")
+        @JsonDeserialize(using = TaskDateDeserializer.class)
         LocalDate dueDate,
         @NotNull(message = "업무 상태는 필수입니다.")
+        @JsonDeserialize(using = TaskStatusDeserializer.class)
         TaskStatus status
 ) {
 }

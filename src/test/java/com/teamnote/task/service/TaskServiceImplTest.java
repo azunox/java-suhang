@@ -129,7 +129,7 @@ class TaskServiceImplTest {
                 eq(false), any(LocalDate.class), eq(TaskStatus.DONE))).thenReturn(List.of(ownedTask()));
 
         List<TaskResponse> results = service.findAll(1L,
-                new TaskSearchRequest(" 담당자 ", TaskStatus.TODO, DATE, DATE, false));
+                new TaskSearchRequest(" 담당자 ", "TODO", DATE, DATE, false));
 
         assertThat(results).extracting(TaskResponse::id).containsExactly(10L);
     }
