@@ -10,6 +10,7 @@ public record TaskResponse(
         Long projectId,
         String title,
         String descriptionMarkdown,
+        String descriptionHtml,
         String assigneeName,
         LocalDate dueDate,
         TaskStatus status,

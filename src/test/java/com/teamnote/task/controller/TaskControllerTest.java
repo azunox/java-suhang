@@ -2,6 +2,7 @@ package com.teamnote.task.controller;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Stream;
 
 import com.teamnote.common.exception.GlobalExceptionHandler;
 import com.teamnote.common.exception.InvalidRequestException;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
@@ -76,7 +78,7 @@ class TaskControllerTest {
         mvc.perform(get(BASE).param("assigneeName", "담당자").param("status", "TODO")
                         .param("dueDateFrom", "2026-11-10").param("overdue", "false"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data[0].id").value(10));
-        verify(service).findAll(1L, new TaskSearchRequest("담당자", TaskStatus.TODO,
+        verify(service).findAll(1L, new TaskSearchRequest("담당자", "TODO",
                 LocalDate.of(2026, 11, 10), null, false));
     }
 
@@ -170,8 +172,55 @@ class TaskControllerTest {
         verifyNoInteractions(service);
     }
 
+    @ParameterizedTest
+    @MethodSource("invalidScalarBodies")
+    void rejectsNonStringOrMalformedDatesAndStatusesForCreateAndUpdate(String body) throws Exception {
+        mvc.perform(post(BASE).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
+        mvc.perform(put(BASE + "/10").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
+        verifyNoInteractions(service);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", " ", "\t"})
+    void rejectsEmptySearchStatusInsteadOfRemovingFilter(String value) throws Exception {
+        mvc.perform(get(BASE).param("status", value)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
+        verifyNoInteractions(service);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"TODO", "IN_PROGRESS", "DONE"})
+    void acceptsNamedStatusStringsForBodiesAndSearch(String value) throws Exception {
+        when(service.create(eq(1L), any(TaskCreateRequest.class))).thenReturn(response());
+        when(service.update(eq(1L), eq(10L), any(TaskUpdateRequest.class))).thenReturn(response());
+        when(service.findAll(eq(1L), any(TaskSearchRequest.class))).thenReturn(List.of());
+        String body = REQUEST.replace("TODO", value);
+        mvc.perform(post(BASE).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated());
+        mvc.perform(put(BASE + "/10").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk());
+        mvc.perform(get(BASE).param("status", value)).andExpect(status().isOk());
+        verify(service).create(1L, new TaskCreateRequest("업무", "", "담당자",
+                LocalDate.of(2026, 11, 10), TaskStatus.valueOf(value)));
+        verify(service).update(1L, 10L, new TaskUpdateRequest("업무", "", "담당자",
+                LocalDate.of(2026, 11, 10), TaskStatus.valueOf(value)));
+        verify(service).findAll(1L, new TaskSearchRequest(null, value, null, null, null));
+    }
+
+    private static Stream<String> invalidScalarBodies() {
+        Stream<String> dates = Stream.of("[2026,11,10]", "20261110", "true", "{}", "\"\"", "\"2026-1-1\"", "null")
+                .map(value -> REQUEST.replace("\"dueDate\":\"2026-11-10\"", "\"dueDate\":" + value));
+        Stream<String> statuses = Stream.of("0", "1", "true", "[]", "\"0\"", "\"\"", "null")
+                .map(value -> REQUEST.replace("\"status\":\"TODO\"", "\"status\":" + value));
+        return Stream.concat(dates, statuses);
+    }
+
     private TaskResponse response() {
-        return new TaskResponse(10L, 1L, "업무", "", "담당자",
+        return new TaskResponse(10L, 1L, "업무", "", "", "담당자",
                 LocalDate.of(2026, 11, 10), TaskStatus.TODO, null);
     }
 }

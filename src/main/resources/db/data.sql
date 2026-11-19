@@ -35,3 +35,10 @@ INSERT INTO meetings (project_id, title, start_at, end_at, minutes_markdown) VAL
 | 팀원 B | 회의록 |'),
 (2, '스터디 계획', TIMESTAMP '2026-11-11 16:00:00', TIMESTAMP '2026-11-11 16:30:00', 'Java와 JPA 학습 범위를 정합니다.'),
 (3, '지난 활동 회고', TIMESTAMP '2026-11-06 15:00:00', TIMESTAMP '2026-11-06 15:30:00', '완료된 프로젝트의 회의 조회용 데이터입니다.');
+
+-- 팀원 A 추가: 2026-11-19 기준 오늘·미래·지난 완료의 overdue 경계 검증용.
+-- 프로젝트·회의 SQL은 최신 main의 자료를 보존한다. 날짜가 지나면 overdue 결과도 변한다.
+INSERT INTO tasks (project_id, title, description_markdown, assignee_name, due_date, status, completed_at) VALUES
+(1, '오늘 마감 경계 확인', '오늘 마감은 기한 초과가 아닙니다.', '팀원 A', '2026-11-19', 'TODO', NULL),
+(1, '미래 마감 경계 확인', '미래 마감 검색용 업무입니다.', '팀원 A', '2026-11-20', 'IN_PROGRESS', NULL),
+(1, '지난 완료 경계 확인', '마감일이 지났어도 완료 업무는 기한 초과가 아닙니다.', '팀원 A', '2026-11-18', 'DONE', TIMESTAMP '2026-11-18 17:00:00');

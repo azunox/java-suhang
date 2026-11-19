@@ -7,6 +7,7 @@ import java.util.List;
 
 import com.teamnote.common.exception.InvalidRequestException;
 import com.teamnote.common.exception.ResourceNotFoundException;
+import com.teamnote.common.service.MarkdownService;
 import com.teamnote.project.entity.Project;
 import com.teamnote.project.repository.ProjectRepository;
 import com.teamnote.task.dto.TaskCreateRequest;
@@ -27,10 +28,13 @@ public class TaskServiceImpl implements TaskService {
 
     private final TaskRepository taskRepository;
     private final ProjectRepository projectRepository;
+    private final MarkdownService markdownService;
 
-    public TaskServiceImpl(TaskRepository taskRepository, ProjectRepository projectRepository) {
+    public TaskServiceImpl(TaskRepository taskRepository, ProjectRepository projectRepository,
+            MarkdownService markdownService) {
         this.taskRepository = taskRepository;
         this.projectRepository = projectRepository;
+        this.markdownService = markdownService;
     }
 
     @Override
@@ -61,7 +65,7 @@ public class TaskServiceImpl implements TaskService {
             }
         }
         LocalDate today = LocalDate.now(ZONE);
-        return taskRepository.search(projectId, assigneeName, request.status(), request.dueDateFrom(),
+        return taskRepository.search(projectId, assigneeName, request.taskStatus(), request.dueDateFrom(),
                         request.dueDateTo(), request.overdue(), today, TaskStatus.DONE).stream()
                 .map(this::toResponse)
                 .toList();
@@ -94,8 +98,16 @@ public class TaskServiceImpl implements TaskService {
     }
 
     private TaskResponse toResponse(Task task) {
-        return new TaskResponse(task.getId(), task.getProject().getId(), task.getTitle(),
-                task.getDescriptionMarkdown(), task.getAssigneeName(), task.getDueDate(),
-                task.getStatus(), task.getCompletedAt());
+        return new TaskResponse(
+                task.getId(),
+                task.getProject().getId(),
+                task.getTitle(),
+                task.getDescriptionMarkdown(),
+                markdownService.render(task.getDescriptionMarkdown()),
+                task.getAssigneeName(),
+                task.getDueDate(),
+                task.getStatus(),
+                task.getCompletedAt()
+        );
     }
 }

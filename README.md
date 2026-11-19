@@ -2,7 +2,7 @@
 
 학교 팀 프로젝트의 프로젝트·업무·회의록을 관리하는 REST API 프로젝트입니다.
 
-프로젝트·업무·회의 CRUD, 프로젝트 이름·상태 검색, 업무 조건 검색, 공통 Markdown 미리보기를 제공합니다. 프로젝트 설명은 원문과 정제된 HTML을 반환합니다. API 사용법과 통합 현황은 [프로젝트·공통 API](docs/PROJECT_API.md), [업무 API](docs/TASK_API.md), [개발 계획](docs/DEVELOPMENT.md)을 참고합니다.
+프로젝트·업무·회의 CRUD, 프로젝트 이름·상태 검색, 업무 조건 검색, 공통 Markdown 미리보기를 제공합니다. 프로젝트·업무 설명은 원문과 정제된 HTML을 반환합니다. API 사용법과 통합 현황은 [프로젝트·공통 API](docs/PROJECT_API.md), [업무 API](docs/TASK_API.md), [개발 계획](docs/DEVELOPMENT.md)을 참고합니다.
 
 팀원과 AI는 작업 전에 [공통 개발 규칙(AGENTS.md)](AGENTS.md)을 읽고 명명·계층·API·예외·검증·Git 기준을 따릅니다. AI 도구가 이 파일을 자동으로 읽지 않으면 작업 지침으로 직접 제공합니다.
 
@@ -78,7 +78,7 @@ Gradle Wrapper 실행 결과의 Launcher JVM은 현재 터미널의 Java 버전�
 | 비밀번호 | 빈 값 |
 | 초기 데이터 | `src/main/resources/db/data.sql` |
 
-로컬 실행 시 Hibernate가 스키마를 만든 다음 SQL을 실행합니다. 초기 데이터는 프로젝트 3개·업무 8개·회의 4개입니다. 상태·담당자·날짜·기한 초과·다른 프로젝트 조회 조건을 개발할 수 있도록 구성했습니다.
+로컬 실행 시 Hibernate가 스키마를 만든 다음 SQL을 실행합니다. 초기 데이터는 프로젝트 3개·업무 11개·회의 4개입니다. 상태·담당자·날짜·기한 초과·다른 프로젝트 조회 조건을 개발할 수 있도록 구성했습니다.
 
 로컬 DB는 메모리 방식이며 **애플리케이션을 종료하면 데이터가 사라지고, 다음 실행 시 더미 데이터로 다시 시작**합니다. Hibernate의 `create-drop`은 로컬·테스트 프로필에만 지정했습니다. 운영 배포를 위한 영속 DB 설정은 별도 범위입니다.
 
@@ -137,7 +137,7 @@ com.teamnote
 {"success":false,"data":null,"error":{"code":"INVALID_REQUEST","message":"요청 값이 올바르지 않습니다.","fields":[{"field":"title","message":"공백일 수 없습니다"}]}}
 ```
 
-`MarkdownService`는 GFM 표를 포함한 Markdown을 HTML로 변환한 뒤 jsoup으로 정제합니다. `POST /api/content/preview`와 프로젝트 설명의 `descriptionHtml`에서 같은 로직을 사용합니다. 원문 HTML 이스케이프, 위험 URL 제한, 허용 태그·속성 정책은 `MarkdownConfiguration`에서 설정합니다.
+`MarkdownService`는 GFM 표를 포함한 Markdown을 HTML로 변환한 뒤 jsoup으로 정제합니다. `POST /api/content/preview`와 프로젝트·업무 설명의 `descriptionHtml`에서 같은 로직을 사용합니다. 원문 HTML 이스케이프, 위험 URL 제한, 허용 태그·속성 정책은 `MarkdownConfiguration`에서 설정합니다.
 
 ## 테스트
 
@@ -166,6 +166,8 @@ com.teamnote
 Controller·Service 테스트는 HTTP 계약과 도메인 규칙을 확인합니다. H2 테스트는 JPQL 조건·정렬, 프로젝트 수정과 외래 키 충돌 후 데이터 보존을 확인합니다.
 
 Gradle 테스트에는 `test` 프로필을 적용합니다. 테스트 DB는 `teamnote-test`로 구분하고 로컬 더미 SQL은 자동 실행하지 않습니다. Repository 테스트에서 필요한 데이터는 해당 테스트가 직접 준비합니다.
+
+업무 테스트는 `./gradlew test --tests 'com.teamnote.task.*'`로 실행합니다. 업무 Repository 테스트는 `@DataJpaTest`로 JPQL을 검증하며, 별도 API 통합 테스트는 실제 Service·JPA·Markdown Bean을 연결합니다. 업무 HTTP 재현 방법은 [업무 API 문서](docs/TASK_API.md)를 참고합니다.
 
 팀장 API의 로컬 Postman 실행 방법과 결과는 [팀장 검증 기록](docs/evidence/team-leader.md)에 있습니다.
 
