@@ -2,7 +2,7 @@
 
 학교 팀 프로젝트의 프로젝트·업무·회의록을 관리하는 REST API 프로젝트입니다.
 
-현재는 초기 세팅 위에 **프로젝트 등록·목록·상세 API와 공통 도메인 예외 처리**를 구현한 단계입니다. 사용법과 테스트 데이터 준비 방법은 [프로젝트 API·공통 예외 계약](docs/PROJECT_API.md)을 참고합니다. 프로젝트 수정·삭제·검색, 업무·회의 API와 Markdown 미리보기는 [개발 계획](docs/DEVELOPMENT.md)에 따라 구현합니다.
+프로젝트·업무·회의 CRUD, 프로젝트 이름·상태 검색, 업무 조건 검색, 공통 Markdown 미리보기를 제공합니다. 프로젝트 설명은 원문과 정제된 HTML을 반환합니다. API 사용법과 통합 현황은 [프로젝트·공통 API](docs/PROJECT_API.md), [업무 API](docs/TASK_API.md), [개발 계획](docs/DEVELOPMENT.md)을 참고합니다.
 
 팀원과 AI는 작업 전에 [공통 개발 규칙(AGENTS.md)](AGENTS.md)을 읽고 명명·계층·API·예외·검증·Git 기준을 따릅니다. AI 도구가 이 파일을 자동으로 읽지 않으면 작업 지침으로 직접 제공합니다.
 
@@ -101,8 +101,11 @@ com.teamnote
 ├── TeamnoteApplication
 ├── common
 │   ├── config       # Markdown 변환·HTML 정제 Bean 설정
+│   ├── controller   # 콘텐츠 미리보기 API
+│   ├── dto          # 미리보기 입출력
 │   ├── exception    # MVC·도메인 오류의 공통 JSON 처리
-│   └── response     # ApiResponse·ApiError
+│   ├── response     # ApiResponse·ApiError
+│   └── service      # Markdown 변환·HTML 정제
 ├── project
 │   ├── controller
 │   ├── dto
@@ -134,7 +137,7 @@ com.teamnote
 {"success":false,"data":null,"error":{"code":"INVALID_REQUEST","message":"요청 값이 올바르지 않습니다.","fields":[{"field":"title","message":"공백일 수 없습니다"}]}}
 ```
 
-`MarkdownConfiguration`에는 Parser·HtmlRenderer·Cleaner Bean을 등록했습니다. GFM 표 지원, 원시 HTML 이스케이프, 위험 URL 제한, HTML 태그·속성 허용 목록을 구성했습니다. 실제 `Markdown 입력 → 변환 → 정제 → Response DTO` 처리 Service와 API 연결은 개발 대상입니다.
+`MarkdownService`는 GFM 표를 포함한 Markdown을 HTML로 변환한 뒤 jsoup으로 정제합니다. `POST /api/content/preview`와 프로젝트 설명의 `descriptionHtml`에서 같은 로직을 사용합니다. 원문 HTML 이스케이프, 위험 URL 제한, 허용 태그·속성 정책은 `MarkdownConfiguration`에서 설정합니다.
 
 ## 테스트
 
@@ -152,21 +155,19 @@ com.teamnote
 - 입력 검증 실패의 상태코드·오류 JSON 검증
 - 허용하지 않는 메서드의 `405`·`Allow` 헤더·오류 JSON 검증
 
-프로젝트 등록·조회와 공통 예외의 관련 단위 테스트 실행:
+프로젝트·공통 기능의 단위 테스트와 H2 테스트를 실행합니다.
 
 ```bash
 ./gradlew test \
-  --tests com.teamnote.common.exception.GlobalExceptionHandlerTest \
-  --tests com.teamnote.project.entity.ProjectTest \
-  --tests com.teamnote.project.service.ProjectServiceImplTest \
-  --tests com.teamnote.project.controller.ProjectControllerTest
+  --tests 'com.teamnote.project.*' \
+  --tests 'com.teamnote.common.*'
 ```
 
-프로젝트 이름·필수값·기간, 등록·조회·빈 목록·없는 대상, 잘못된 ID·enum·날짜, 공통 오류 응답을 검증합니다. Controller는 MockMvc, Service는 Mockito를 사용하므로 실제 DB 저장·트랜잭션 검증과는 구분합니다.
+Controller·Service 테스트는 HTTP 계약과 도메인 규칙을 확인합니다. H2 테스트는 JPQL 조건·정렬, 프로젝트 수정과 외래 키 충돌 후 데이터 보존을 확인합니다.
 
 Gradle 테스트에는 `test` 프로필을 적용합니다. 테스트 DB는 `teamnote-test`로 구분하고 로컬 더미 SQL은 자동 실행하지 않습니다. Repository 테스트에서 필요한 데이터는 해당 테스트가 직접 준비합니다.
 
-Markdown 설정 테스트는 초기 공통 설정 검증용입니다. 프로젝트 테스트는 현재 구현한 등록·조회 범위를 검증하며, 남은 도메인 기능과 개인별 검증 근거는 각 구현에 맞춰 추가해야 합니다.
+팀장 API의 로컬 Postman 실행 방법과 결과는 [팀장 검증 기록](docs/evidence/team-leader.md)에 있습니다.
 
 ## 초기 세팅 검증 결과
 
@@ -188,4 +189,4 @@ Markdown 설정 테스트는 초기 공통 설정 검증용입니다. 프로젝�
 - [개인 보고서 양식](https://app.notion.com/p/40ee75054743806f972aefcfbe90f0bf)
 - [담당 범위·구현 순서·남은 요구사항](docs/DEVELOPMENT.md)
 
-초기 생성 브랜치는 `chore/teamnote-project-setup`이며, 세팅 시점에 초기 커밋·원격 저장소 연결·push는 수행하지 않았습니다. 팀 저장소 공개 전환과 개인별 유효 커밋·PDF 제출 조건은 개발 계획에서 확인합니다.
+개인별 유효 커밋과 PDF 제출 조건은 개발 계획에서 확인합니다.

@@ -12,6 +12,8 @@ import org.springframework.data.repository.query.Param;
 
 public interface TaskRepository extends JpaRepository<Task, Long> {
 
+    boolean existsByProject_Id(Long projectId);
+
     Optional<Task> findByIdAndProject_Id(Long taskId, Long projectId);
 
     @Query("""

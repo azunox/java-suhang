@@ -48,6 +48,18 @@ public class Project {
             LocalDate endDate,
             ProjectStatus status
     ) {
+        Project project = new Project();
+        project.update(name, descriptionMarkdown, startDate, endDate, status);
+        return project;
+    }
+
+    public void update(
+            String name,
+            String descriptionMarkdown,
+            LocalDate startDate,
+            LocalDate endDate,
+            ProjectStatus status
+    ) {
         if (name == null || name.isBlank()) {
             throw new InvalidRequestException("프로젝트 이름은 필수입니다.");
         }
@@ -67,13 +79,11 @@ public class Project {
             throw new InvalidRequestException("시작일은 종료일보다 늦을 수 없습니다.");
         }
 
-        Project project = new Project();
-        project.name = name.strip();
-        project.descriptionMarkdown = descriptionMarkdown;
-        project.startDate = startDate;
-        project.endDate = endDate;
-        project.status = status;
-        return project;
+        this.name = name.strip();
+        this.descriptionMarkdown = descriptionMarkdown;
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.status = status;
     }
 
     public Long getId() {

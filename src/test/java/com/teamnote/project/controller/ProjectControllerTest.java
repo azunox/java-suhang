@@ -4,11 +4,14 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Stream;
 
+import com.teamnote.common.exception.ConflictException;
 import com.teamnote.common.exception.GlobalExceptionHandler;
 import com.teamnote.common.exception.InvalidRequestException;
 import com.teamnote.common.exception.ResourceNotFoundException;
 import com.teamnote.project.dto.ProjectCreateRequest;
 import com.teamnote.project.dto.ProjectResponse;
+import com.teamnote.project.dto.ProjectSearchRequest;
+import com.teamnote.project.dto.ProjectUpdateRequest;
 import com.teamnote.project.entity.ProjectStatus;
 import com.teamnote.project.service.ProjectService;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,6 +23,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -27,11 +31,15 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -39,6 +47,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ProjectControllerTest {
 
     private static final String MARKDOWN = "# TEAMNOTE\n\n설명  \n";
+    private static final String HTML = "<h1>TEAMNOTE</h1>\n<p>설명</p>";
     private static final String VALID_REQUEST = """
             {
               "name": "  REST API 수행평가  ",
@@ -77,7 +86,7 @@ class ProjectControllerTest {
                 .andExpect(jsonPath("$.data.startDate").value("2026-11-09"))
                 .andExpect(jsonPath("$.data.endDate").value("2026-11-20"))
                 .andExpect(jsonPath("$.data.status").value("IN_PROGRESS"))
-                .andExpect(jsonPath("$.data.descriptionHtml").doesNotExist());
+                .andExpect(jsonPath("$.data.descriptionHtml").value(HTML));
 
         verify(projectService).create(new ProjectCreateRequest("  REST API 수행평가  ", MARKDOWN,
                 LocalDate.of(2026, 11, 9), LocalDate.of(2026, 11, 20), ProjectStatus.IN_PROGRESS));
@@ -150,9 +159,26 @@ class ProjectControllerTest {
         verifyNoInteractions(projectService);
     }
 
+    @ParameterizedTest
+    @CsvSource(value = {
+            "POST | /api/projects | \"2026-11-09\" | [2026,11,9]",
+            "PUT | /api/projects/1 | \"2026-11-09\" | [2026,11,9]",
+            "POST | /api/projects | \"IN_PROGRESS\" | 0",
+            "PUT | /api/projects/1 | \"IN_PROGRESS\" | 0"
+    }, delimiter = '|')
+    void rejectsNonStringDatesAndStatusesBeforeCallingService(String method, String path, String original, String invalid)
+            throws Exception {
+        mockMvc.perform(request(HttpMethod.valueOf(method), path).contentType(MediaType.APPLICATION_JSON)
+                        .content(VALID_REQUEST.replace(original, invalid)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
+
+        verifyNoInteractions(projectService);
+    }
+
     @Test
     void returnsProjectList() throws Exception {
-        when(projectService.findAll()).thenReturn(List.of(response()));
+        when(projectService.findAll(new ProjectSearchRequest(null, null))).thenReturn(List.of(response()));
 
         mockMvc.perform(get("/api/projects"))
                 .andExpect(status().isOk())
@@ -163,13 +189,34 @@ class ProjectControllerTest {
 
     @Test
     void returnsEmptyArrayWhenNoProjectsExist() throws Exception {
-        when(projectService.findAll()).thenReturn(List.of());
+        when(projectService.findAll(new ProjectSearchRequest("REST", "PLANNED"))).thenReturn(List.of());
 
-        mockMvc.perform(get("/api/projects"))
+        mockMvc.perform(get("/api/projects").param("name", "REST").param("status", "PLANNED"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data").isArray())
                 .andExpect(jsonPath("$.data").isEmpty());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"UNKNOWN", "", "   "})
+    void rejectsInvalidSearchStatus(String projectStatus) throws Exception {
+        mockMvc.perform(get("/api/projects").param("status", projectStatus))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.error.fields[0].field").value("status"));
+
+        verifyNoInteractions(projectService);
+    }
+
+    @Test
+    void rejectsTooLongSearchName() throws Exception {
+        mockMvc.perform(get("/api/projects").param("name", "가".repeat(121)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.error.fields[0].field").value("name"));
+
+        verifyNoInteractions(projectService);
     }
 
     @Test
@@ -205,12 +252,75 @@ class ProjectControllerTest {
         verifyNoInteractions(projectService);
     }
 
+    @Test
+    void updatesProjectWithFullRequest() throws Exception {
+        ProjectUpdateRequest request = new ProjectUpdateRequest("  REST API 수행평가  ", MARKDOWN,
+                LocalDate.of(2026, 11, 9), LocalDate.of(2026, 11, 20), ProjectStatus.IN_PROGRESS);
+        when(projectService.update(1L, request)).thenReturn(response());
+
+        mockMvc.perform(put("/api/projects/1").contentType(MediaType.APPLICATION_JSON).content(VALID_REQUEST))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(1))
+                .andExpect(jsonPath("$.data.descriptionHtml").value(response().descriptionHtml()));
+    }
+
+    @Test
+    void rejectsPartialUpdateBeforeCallingService() throws Exception {
+        mockMvc.perform(put("/api/projects/1").contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"변경\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.error.fields[*].field").value(containsInAnyOrder(
+                        "descriptionMarkdown", "startDate", "endDate", "status")));
+
+        verifyNoInteractions(projectService);
+    }
+
+    @Test
+    void returnsNotFoundWhenUpdatingMissingProject() throws Exception {
+        when(projectService.update(any(Long.class), any(ProjectUpdateRequest.class)))
+                .thenThrow(new ResourceNotFoundException("프로젝트를 찾을 수 없습니다."));
+
+        mockMvc.perform(put("/api/projects/999").contentType(MediaType.APPLICATION_JSON).content(VALID_REQUEST))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("RESOURCE_NOT_FOUND"));
+    }
+
+    @Test
+    void returnsSuccessWithNullDataAfterDeletion() throws Exception {
+        mockMvc.perform(delete("/api/projects/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.error").value(nullValue()))
+                .andExpect(jsonPath("$.data").value(nullValue()));
+
+        verify(projectService).delete(1L);
+    }
+
+    @Test
+    void returnsConflictWhenDeletingProjectWithChildren() throws Exception {
+        doThrow(new ConflictException("업무 또는 회의가 남아 있는 프로젝트는 삭제할 수 없습니다."))
+                .when(projectService).delete(1L);
+
+        mockMvc.perform(delete("/api/projects/1"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("CONFLICT"));
+    }
+
+    @Test
+    void returnsNotFoundWhenDeletingMissingProject() throws Exception {
+        doThrow(new ResourceNotFoundException("프로젝트를 찾을 수 없습니다.")).when(projectService).delete(999L);
+
+        mockMvc.perform(delete("/api/projects/999"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("RESOURCE_NOT_FOUND"));
+    }
+
     static Stream<String> invalidNames() {
         return Stream.of("", "   ", "가".repeat(121));
     }
 
     private ProjectResponse response() {
-        return new ProjectResponse(1L, "REST API 수행평가", MARKDOWN,
+        return new ProjectResponse(1L, "REST API 수행평가", MARKDOWN, HTML,
                 LocalDate.of(2026, 11, 9), LocalDate.of(2026, 11, 20), ProjectStatus.IN_PROGRESS);
     }
 }
