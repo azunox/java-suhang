@@ -21,6 +21,7 @@
 | commonmark-java | **0.32.0** |
 | CommonMark GFM Tables | **0.32.0**, 코어와 같은 버전 |
 | jsoup | **1.24.1** |
+| springdoc-openapi | **3.2.0** |
 
 Spring Boot 관리 대상 의존성은 개별 버전을 덮어쓰지 않습니다. 추가 라이브러리는 `build.gradle`에 명시적으로 고정했습니다. 스냅샷·마일스톤 저장소는 사용하지 않습니다.
 
@@ -59,6 +60,10 @@ java -jar build/libs/teamnote-0.0.1-SNAPSHOT.jar
 ```
 
 Gradle Wrapper 실행 결과의 Launcher JVM은 현재 터미널의 Java 버전일 수 있습니다. 실제 Gradle Daemon은 `gradle/gradle-daemon-jvm.properties`로 Java 21을 선택하고, 소스·테스트·실행도 Toolchain 21을 사용합니다. JDK 21이 없으면 먼저 설치해야 합니다.
+
+## Swagger UI
+
+애플리케이션 실행 후 [Swagger UI](http://localhost:8080/swagger-ui.html)에서 프로젝트·업무·회의·Markdown 미리보기 API의 요청 형식을 확인하고 호출할 수 있습니다. OpenAPI 문서는 [JSON](http://localhost:8080/v3/api-docs)과 [YAML](http://localhost:8080/v3/api-docs.yaml)로 제공합니다. `SERVER_PORT`를 바꿨다면 같은 포트로 접속합니다.
 
 ## IntelliJ IDEA에서 열기
 

@@ -2,6 +2,7 @@ package com.teamnote.meeting.dto;
 
 import java.time.LocalDateTime;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -13,9 +14,11 @@ public record MeetingUpdateRequest(
         String title,
         @NotNull(message = "회의 시작 시각은 필수입니다.")
         @JsonDeserialize(using = MeetingDateTimeDeserializer.class)
+        @Schema(implementation = String.class, description = "오프셋 없는 현지 시각", example = "2026-11-19T10:00:00")
         LocalDateTime startAt,
         @NotNull(message = "회의 종료 시각은 필수입니다.")
         @JsonDeserialize(using = MeetingDateTimeDeserializer.class)
+        @Schema(implementation = String.class, description = "오프셋 없는 현지 시각", example = "2026-11-19T11:00:00")
         LocalDateTime endAt,
         @NotNull(message = "회의록은 필수입니다.")
         String minutesMarkdown
