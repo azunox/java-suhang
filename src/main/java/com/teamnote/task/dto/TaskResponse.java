@@ -13,6 +13,7 @@ public record TaskResponse(
         String assigneeName,
         LocalDate dueDate,
         TaskStatus status,
-        LocalDateTime completedAt
+        LocalDateTime completedAt,
+        String descriptionHtml
 ) {
 }

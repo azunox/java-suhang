@@ -172,6 +172,6 @@ class TaskControllerTest {
 
     private TaskResponse response() {
         return new TaskResponse(10L, 1L, "업무", "", "담당자",
-                LocalDate.of(2026, 11, 10), TaskStatus.TODO, null);
+                LocalDate.of(2026, 11, 10), TaskStatus.TODO, null, "");
     }
 }

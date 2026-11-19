@@ -8,6 +8,7 @@ import java.util.Optional;
 
 import com.teamnote.common.exception.InvalidRequestException;
 import com.teamnote.common.exception.ResourceNotFoundException;
+import com.teamnote.common.service.MarkdownService;
 import com.teamnote.project.entity.Project;
 import com.teamnote.project.repository.ProjectRepository;
 import com.teamnote.task.dto.TaskCreateRequest;
@@ -45,6 +46,9 @@ class TaskServiceImplTest {
     private ProjectRepository projectRepository;
     @Mock
     private Project project;
+    @Mock
+    private MarkdownService markdownService;
+
     @InjectMocks
     private TaskServiceImpl service;
 
