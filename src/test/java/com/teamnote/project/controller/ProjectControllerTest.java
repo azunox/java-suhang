@@ -23,7 +23,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -39,7 +38,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -161,15 +159,17 @@ class ProjectControllerTest {
 
     @ParameterizedTest
     @CsvSource(value = {
-            "POST | /api/projects | \"2026-11-09\" | [2026,11,9]",
-            "PUT | /api/projects/1 | \"2026-11-09\" | [2026,11,9]",
-            "POST | /api/projects | \"IN_PROGRESS\" | 0",
-            "PUT | /api/projects/1 | \"IN_PROGRESS\" | 0"
+            "\"2026-11-09\" | [2026,11,9]",
+            "\"IN_PROGRESS\" | 0",
+            "\"  REST API 수행평가  \" | 123",
+            "\"# TEAMNOTE\\n\\n설명  \\n\" | false"
     }, delimiter = '|')
-    void rejectsNonStringDatesAndStatusesBeforeCallingService(String method, String path, String original, String invalid)
-            throws Exception {
-        mockMvc.perform(request(HttpMethod.valueOf(method), path).contentType(MediaType.APPLICATION_JSON)
-                        .content(VALID_REQUEST.replace(original, invalid)))
+    void rejectsNonStringRequestFieldsBeforeCallingService(String original, String invalid) throws Exception {
+        String body = VALID_REQUEST.replace(original, invalid);
+        mockMvc.perform(post("/api/projects").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
+        mockMvc.perform(put("/api/projects/1").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
 
@@ -185,6 +185,14 @@ class ProjectControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.length()").value(1))
                 .andExpect(jsonPath("$.data[0].id").value(1));
+    }
+
+    @Test
+    void searchIgnoresHeadersAndFormBindingParameters() throws Exception {
+        mockMvc.perform(get("/api/projects").header("name", "REST").param("!status", "PLANNED"))
+                .andExpect(status().isOk());
+
+        verify(projectService).findAll(new ProjectSearchRequest(null, null));
     }
 
     @Test

@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 
+import com.teamnote.common.controller.SearchRequestBinding;
 import com.teamnote.common.response.ApiResponse;
 import com.teamnote.meeting.dto.MeetingCreateRequest;
 import com.teamnote.meeting.dto.MeetingDateTimeParser;
@@ -41,6 +42,7 @@ public class MeetingController {
 
     @InitBinder("meetingSearchRequest")
     void bindSearchDateTimes(WebDataBinder binder) {
+        SearchRequestBinding.useQueryParameters(binder);
         binder.registerCustomEditor(LocalDateTime.class, new PropertyEditorSupport() {
             @Override
             public void setAsText(String text) {

@@ -17,8 +17,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
@@ -114,6 +115,39 @@ class TaskControllerTest {
     }
 
     @ParameterizedTest
+    @MethodSource("invalidSearchParameters")
+    void rejectsPresentSearchParametersWithInvalidFormat(String parameter, String value) throws Exception {
+        mvc.perform(get(BASE).param(parameter, value))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.error.fields[0].field").value(parameter));
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    void acceptsBothDateBoundsAndTrueOverdueFilter() throws Exception {
+        TaskSearchRequest search = new TaskSearchRequest(null, null,
+                LocalDate.of(2024, 2, 29), LocalDate.of(2026, 11, 20), true);
+        when(service.findAll(1L, search)).thenReturn(List.of());
+
+        mvc.perform(get(BASE).param("dueDateFrom", "2024-02-29").param("dueDateTo", "2026-11-20")
+                        .param("overdue", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").isEmpty());
+
+        verify(service).findAll(1L, search);
+    }
+
+    @Test
+    void searchIgnoresHeadersAndFormBindingParameters() throws Exception {
+        mvc.perform(get(BASE).header("status", "TODO")
+                        .param("!dueDateFrom", "2026-11-19").param("_overdue", "on"))
+                .andExpect(status().isOk());
+
+        verify(service).findAll(1L, new TaskSearchRequest(null, null, null, null, null));
+    }
+
+    @ParameterizedTest
     @ValueSource(strings = {" ", "longTitle", "longAssignee"})
     void rejectsBlankTitleAndOversizedNamesWithOtherwiseValidBody(String scenario) throws Exception {
         String body = switch (scenario) {
@@ -174,7 +208,7 @@ class TaskControllerTest {
 
     @ParameterizedTest
     @MethodSource("invalidScalarBodies")
-    void rejectsNonStringOrMalformedDatesAndStatusesForCreateAndUpdate(String body) throws Exception {
+    void rejectsMalformedFieldsForCreateAndUpdate(String body) throws Exception {
         mvc.perform(post(BASE).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
@@ -216,7 +250,20 @@ class TaskControllerTest {
                 .map(value -> REQUEST.replace("\"dueDate\":\"2026-11-10\"", "\"dueDate\":" + value));
         Stream<String> statuses = Stream.of("0", "1", "true", "[]", "\"0\"", "\"\"", "null")
                 .map(value -> REQUEST.replace("\"status\":\"TODO\"", "\"status\":" + value));
-        return Stream.concat(dates, statuses);
+        Stream<String> textFields = Stream.of(
+                REQUEST.replace("\"업무\"", "123"),
+                REQUEST.replace("\"descriptionMarkdown\":\"\"", "\"descriptionMarkdown\":true"),
+                REQUEST.replace("\"담당자\"", "42.5")
+        );
+        return Stream.of(dates, statuses, textFields).flatMap(stream -> stream);
+    }
+
+    private static Stream<Arguments> invalidSearchParameters() {
+        Stream<Arguments> dates = Stream.of("", " ", "2026-11-19+09:00", "2026-11-19Z", "2026-02-30", "+12026-11-19")
+                .flatMap(value -> Stream.of(Arguments.of("dueDateFrom", value), Arguments.of("dueDateTo", value)));
+        Stream<Arguments> overdue = Stream.of("", " ", "yes", "1", "TRUE", " true ")
+                .map(value -> Arguments.of("overdue", value));
+        return Stream.concat(dates, overdue);
     }
 
     private TaskResponse response() {

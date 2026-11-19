@@ -58,4 +58,15 @@ class ContentPreviewControllerTest {
                 .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"))
                 .andExpect(jsonPath("$.error.fields[0].field").value("markdown"));
     }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"123", "12.5", "true"})
+    void rejectsNonStringMarkdown(String value) throws Exception {
+        mockMvc.perform(post(PREVIEW_PATH)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"markdown\":" + value + "}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
+    }
 }

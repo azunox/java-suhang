@@ -2,6 +2,7 @@ package com.teamnote.project.controller;
 
 import java.util.List;
 
+import com.teamnote.common.controller.SearchRequestBinding;
 import com.teamnote.common.response.ApiResponse;
 import com.teamnote.project.dto.ProjectCreateRequest;
 import com.teamnote.project.dto.ProjectResponse;
@@ -13,8 +14,10 @@ import jakarta.validation.constraints.Positive;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,6 +34,11 @@ public class ProjectController {
 
     public ProjectController(ProjectService projectService) {
         this.projectService = projectService;
+    }
+
+    @InitBinder("projectSearchRequest")
+    void bindSearchParameters(WebDataBinder binder) {
+        SearchRequestBinding.useQueryParameters(binder);
     }
 
     @PostMapping

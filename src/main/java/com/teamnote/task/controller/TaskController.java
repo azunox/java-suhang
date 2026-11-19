@@ -1,7 +1,12 @@
 package com.teamnote.task.controller;
 
+import java.beans.PropertyEditorSupport;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 
+import com.teamnote.common.controller.SearchRequestBinding;
+import com.teamnote.common.dto.LocalDateParser;
 import com.teamnote.common.response.ApiResponse;
 import com.teamnote.task.dto.TaskCreateRequest;
 import com.teamnote.task.dto.TaskResponse;
@@ -13,8 +18,10 @@ import jakarta.validation.constraints.Positive;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,6 +38,31 @@ public class TaskController {
 
     public TaskController(TaskService taskService) {
         this.taskService = taskService;
+    }
+
+    @InitBinder("taskSearchRequest")
+    void bindSearchParameters(WebDataBinder binder) {
+        SearchRequestBinding.useQueryParameters(binder);
+        binder.registerCustomEditor(LocalDate.class, new PropertyEditorSupport() {
+            @Override
+            public void setAsText(String text) {
+                try {
+                    setValue(LocalDateParser.parse(text));
+                } catch (DateTimeParseException exception) {
+                    throw new IllegalArgumentException("마감일은 yyyy-MM-dd 형식이어야 합니다.", exception);
+                }
+            }
+        });
+        binder.registerCustomEditor(Boolean.class, new PropertyEditorSupport() {
+            @Override
+            public void setAsText(String text) {
+                setValue(switch (text) {
+                    case "true" -> true;
+                    case "false" -> false;
+                    default -> throw new IllegalArgumentException("기한 초과 조건은 true 또는 false여야 합니다.");
+                });
+            }
+        });
     }
 
     @PostMapping

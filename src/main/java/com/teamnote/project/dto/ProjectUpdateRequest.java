@@ -2,6 +2,7 @@ package com.teamnote.project.dto;
 
 import java.time.LocalDate;
 
+import com.teamnote.common.dto.StrictStringDeserializer;
 import com.teamnote.project.entity.ProjectStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -11,8 +12,10 @@ import tools.jackson.databind.annotation.JsonDeserialize;
 public record ProjectUpdateRequest(
         @NotBlank(message = "프로젝트 이름은 필수입니다.")
         @Size(max = 120, message = "프로젝트 이름은 120자 이하여야 합니다.")
+        @JsonDeserialize(using = StrictStringDeserializer.class)
         String name,
         @NotNull(message = "프로젝트 설명은 필수입니다.")
+        @JsonDeserialize(using = StrictStringDeserializer.class)
         String descriptionMarkdown,
         @NotNull(message = "프로젝트 시작일은 필수입니다.")
         @JsonDeserialize(using = ProjectDateDeserializer.class)
