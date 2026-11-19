@@ -38,13 +38,16 @@ postman collection run postman/TEAMNOTE.postman_collection.json \
 | 전체 팀 Postman | 요청 97개·검증 312개, 검증 6개 실패, exit 1 | 업무 HTML 기능이 없는 현재 main 기반 |
 | 별도 A+B 통합 전체 자동화 테스트 | 170건, 실패·오류·스킵 0 | 별도 worktree에 A `1911e74`를 임시 병합 |
 | 별도 A+B 통합 Postman | 요청 97개·검증 312개 모두 통과, exit 0 | 위 통합 JAR을 127.0.0.1:18083에서 실행 |
+| 최종 제출 브랜치 전체 자동화 테스트 | 190건, 실패·오류·스킵 0, bootJar 성공 | A PR #8까지 병합된 main `beab6ff` 통합 후 |
+| 최종 팀 Postman | 요청 104개·검증 345개 모두 통과, exit 0 | 위 최종 JAR, A의 최신 39개 요청 반영, 127.0.0.1:18082 |
 
-업무 HTML 관련 6개 실패는 TaskResponse에 `descriptionHtml`이 아직 없는 main에서 재현됐다. 팀원 A의 `feat/task-completion`을 합친 별도 작업 폴더에서는 같은 컬렉션이 통과했다. A 브랜치 내용은 B 제출 브랜치에 추가하지 않았다. 팀 최종 병합 후 컬렉션을 다시 실행한다.
+업무 HTML 관련 6개 실패는 A 변경 병합 전 main에서 재현했다. 작업 중 A PR #8이 main에 병합되어 최종 회의 브랜치에도 최신 main을 통합했다. A의 형식 검증·추가 테스트와 최신 Postman 39개 요청까지 반영해 다시 실행했고 위 최종 결과가 통과했다. 아래 초기 로그는 이 통합 과정을 설명하는 이력이다.
 
 - [자동화 테스트 상세](member-b-tests.json)
 - [제출 브랜치 Postman 성공 로그](member-b-postman-core.txt)
 - [업무 병합 전 전체 컬렉션 실패 로그](member-b-postman-main.txt)
 - [A+B 별도 통합 Postman 성공 로그](member-b-postman-integration.txt)
+- [최종 팀 Postman 성공 로그](member-b-postman-final.txt)
 - [실제 HTTP 요청·응답 13건](member-b-http.json). Postman 로그와 별도로 Python urllib로 기록했다.
 
 ## 회귀 테스트와 SQL
@@ -70,7 +73,7 @@ postman collection run postman/TEAMNOTE.postman_collection.json \
 ## 자료 통합 출처
 
 - Projects·Content Preview는 팀장 main `ccf12c5`의 컬렉션
-- Tasks는 팀원 A `1911e74f4e7d54f2b06efaa153f1d54ce342f3f8`의 전달 컬렉션. 업무 구현과 기존 검증의 작성자는 A다.
+- Tasks 최종본은 PR #8로 병합된 main `beab6ff`의 팀원 A 컬렉션 39개 요청이다. 업무 구현과 검증의 작성자는 A다. 초기 별도 통합에는 A `1911e74`를 사용했다.
 - Meetings와 공통 실행 순서·자료 통합·추가 정리는 B의 작업이다.
 - 더미 SQL 통합 담당자는 A다. B의 SQL은 독립 파일과 실행 테스트로 전달 가능한 상태다.
 

@@ -251,5 +251,138 @@
   },
   "executedAt": "2026-11-19",
   "mainBase": "ccf12c5",
-  "integrationMemberA": "1911e74f4e7d54f2b06efaa153f1d54ce342f3f8"
+  "integrationMemberA": "1911e74f4e7d54f2b06efaa153f1d54ce342f3f8",
+  "finalMerged": {
+    "mainBase": "beab6ff77cb43847a3cc8c0fff7444de1d39bdf1",
+    "total": 190,
+    "failed": 0,
+    "classes": [
+      {
+        "name": "com.teamnote.common.config.MarkdownConfigurationTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.teamnote.common.controller.ContentPreviewControllerTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.teamnote.common.exception.GlobalExceptionHandlerTest",
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.teamnote.common.service.MarkdownServiceImplTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.teamnote.meeting.controller.MeetingControllerTest",
+        "tests": 26,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.teamnote.meeting.repository.MeetingRepositoryTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.teamnote.meeting.service.MeetingPersistenceTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.teamnote.meeting.service.MeetingServiceImplTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.teamnote.project.controller.ProjectControllerTest",
+        "tests": 32,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.teamnote.project.entity.ProjectTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.teamnote.project.repository.ProjectRepositoryTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.teamnote.project.service.ProjectPersistenceTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.teamnote.project.service.ProjectServiceImplTest",
+        "tests": 15,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.teamnote.task.controller.TaskControllerTest",
+        "tests": 39,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.teamnote.task.entity.TaskTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.teamnote.task.integration.TaskApiIntegrationTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.teamnote.task.repository.TaskRepositoryTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "com.teamnote.task.service.TaskServiceImplTest",
+        "tests": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ]
+  }
 }

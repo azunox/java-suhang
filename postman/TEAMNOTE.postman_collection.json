@@ -1227,6 +1227,167 @@
           ]
         },
         {
+          "name": "회귀 / dueDate 비문자열 POST",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"형식 검증\", \"descriptionMarkdown\": \"\", \"assigneeName\": \"팀원 A\", \"dueDate\": [2026, 11, 19], \"status\": \"TODO\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "회귀 / dueDate 비문자열 PUT",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks/{{todayId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"형식 검증\", \"descriptionMarkdown\": \"\", \"assigneeName\": \"팀원 A\", \"dueDate\": [2026, 11, 19], \"status\": \"TODO\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "회귀 / status 비문자열 POST",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"형식 검증\", \"descriptionMarkdown\": \"\", \"assigneeName\": \"팀원 A\", \"dueDate\": \"{{today}}\", \"status\": 0}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "회귀 / status 비문자열 PUT",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks/{{todayId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"형식 검증\", \"descriptionMarkdown\": \"\", \"assigneeName\": \"팀원 A\", \"dueDate\": \"{{today}}\", \"status\": 0}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "회귀 / 빈 검색 상태",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks?status="
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "기술 / 표·코드·HTML 정제",
           "request": {
             "method": "PUT",
@@ -1452,7 +1613,10 @@
                   "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
                   "const body = pm.response.json();",
                   "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(true));",
-                  "pm.test(\"다른 팀원 데이터와 표 샘플 유지\", () => { pm.expect(body.data.some(t=>t.assigneeName===\"팀장\")).to.eql(true); pm.expect(body.data.some(t=>t.assigneeName===\"팀원 B\")).to.eql(true); pm.expect(body.data.some(t=>t.descriptionHtml.includes(\"<table>\"))).to.eql(true); });"
+                  "pm.test(\"다른 팀원 데이터와 표 샘플 유지\", () => { pm.expect(body.data.some(t=>t.assigneeName===\"팀장\")).to.eql(true); pm.expect(body.data.some(t=>t.assigneeName===\"팀원 B\")).to.eql(true); pm.expect(body.data.some(t=>t.descriptionHtml.includes(\"<table>\"))).to.eql(true); });",
+                  "pm.test(\"SQL 경계 샘플 / 오늘 마감 경계 확인\", () => { const t = body.data.find(t => t.title === \"오늘 마감 경계 확인\"); pm.expect(t).to.be.an(\"object\"); pm.expect(t.assigneeName).to.eql(\"팀원 A\"); pm.expect(t.dueDate).to.eql(\"2026-11-19\"); pm.expect(t.status).to.eql(\"TODO\"); pm.expect(t.completedAt).to.eql(null); });",
+                  "pm.test(\"SQL 경계 샘플 / 미래 마감 경계 확인\", () => { const t = body.data.find(t => t.title === \"미래 마감 경계 확인\"); pm.expect(t).to.be.an(\"object\"); pm.expect(t.assigneeName).to.eql(\"팀원 A\"); pm.expect(t.dueDate).to.eql(\"2026-11-20\"); pm.expect(t.status).to.eql(\"IN_PROGRESS\"); pm.expect(t.completedAt).to.eql(null); });",
+                  "pm.test(\"SQL 경계 샘플 / 지난 완료 경계 확인\", () => { const t = body.data.find(t => t.title === \"지난 완료 경계 확인\"); pm.expect(t).to.be.an(\"object\"); pm.expect(t.assigneeName).to.eql(\"팀원 A\"); pm.expect(t.dueDate).to.eql(\"2026-11-18\"); pm.expect(t.status).to.eql(\"DONE\"); pm.expect(t.completedAt).to.eql(\"2026-11-18T17:00:00\"); });"
                 ]
               }
             }
@@ -1543,7 +1707,7 @@
           ]
         },
         {
-          "name": "통합 정리 · 업무 프로젝트",
+          "name": "정리 / 프로젝트 projectId",
           "request": {
             "method": "DELETE",
             "header": [],
@@ -1556,14 +1720,36 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
-                  "const body = pm.response.json();"
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(true));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "통합 정리 · 다른 업무 프로젝트",
+          "name": "정리 확인 / 프로젝트 projectId",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "정리 / 프로젝트 otherProjectId",
           "request": {
             "method": "DELETE",
             "header": [],
@@ -1576,7 +1762,29 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
-                  "const body = pm.response.json();"
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "정리 확인 / 프로젝트 otherProjectId",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{otherProjectId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"공통 응답\", () => pm.expect(body.success).to.eql(false));"
                 ]
               }
             }
