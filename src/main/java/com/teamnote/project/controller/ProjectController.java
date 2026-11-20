@@ -2,7 +2,7 @@ package com.teamnote.project.controller;
 
 import java.util.List;
 
-import com.teamnote.common.controller.SearchRequestBinding;
+import com.teamnote.common.controller.SearchQuery;
 import com.teamnote.common.response.ApiResponse;
 import com.teamnote.project.dto.ProjectCreateRequest;
 import com.teamnote.project.dto.ProjectResponse;
@@ -14,17 +14,17 @@ import jakarta.validation.constraints.Positive;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.InitBinder;
-import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import static com.teamnote.common.config.OpenApiConfiguration.CONFLICT_REF;
+import static com.teamnote.common.config.OpenApiConfiguration.RESOURCE_NOT_FOUND_REF;
 
 @RestController
 @RequestMapping("/api/projects")
@@ -34,11 +34,6 @@ public class ProjectController {
 
     public ProjectController(ProjectService projectService) {
         this.projectService = projectService;
-    }
-
-    @InitBinder("projectSearchRequest")
-    void bindSearchParameters(WebDataBinder binder) {
-        SearchRequestBinding.useQueryParameters(binder);
     }
 
     @PostMapping
@@ -51,12 +46,14 @@ public class ProjectController {
 
     @GetMapping
     public ApiResponse<List<ProjectResponse>> findAll(
-            @Valid @ModelAttribute @ParameterObject ProjectSearchRequest request
+            @Valid @SearchQuery @ParameterObject ProjectSearchRequest request
     ) {
         return ApiResponse.success(projectService.findAll(request));
     }
 
     @GetMapping("/{projectId}")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", useReturnTypeSchema = true)
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", ref = RESOURCE_NOT_FOUND_REF)
     public ApiResponse<ProjectResponse> findById(
             @PathVariable @Positive(message = "프로젝트 ID는 양수여야 합니다.") Long projectId
     ) {
@@ -64,6 +61,8 @@ public class ProjectController {
     }
 
     @PutMapping("/{projectId}")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", useReturnTypeSchema = true)
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", ref = RESOURCE_NOT_FOUND_REF)
     public ApiResponse<ProjectResponse> update(
             @PathVariable @Positive(message = "프로젝트 ID는 양수여야 합니다.") Long projectId,
             @Valid @RequestBody ProjectUpdateRequest request
@@ -72,6 +71,9 @@ public class ProjectController {
     }
 
     @DeleteMapping("/{projectId}")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", useReturnTypeSchema = true)
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", ref = RESOURCE_NOT_FOUND_REF)
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", ref = CONFLICT_REF)
     public ApiResponse<Void> delete(
             @PathVariable @Positive(message = "프로젝트 ID는 양수여야 합니다.") Long projectId
     ) {

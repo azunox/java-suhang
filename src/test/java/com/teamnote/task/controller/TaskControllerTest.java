@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Stream;
 
+import com.teamnote.common.controller.SearchRequestBinding;
 import com.teamnote.common.exception.GlobalExceptionHandler;
 import com.teamnote.common.exception.InvalidRequestException;
 import com.teamnote.common.exception.ResourceNotFoundException;
@@ -56,6 +57,7 @@ class TaskControllerTest {
     @BeforeEach
     void setUp() {
         mvc = MockMvcBuilders.standaloneSetup(new TaskController(service))
+                .setCustomArgumentResolvers(new SearchRequestBinding())
                 .setControllerAdvice(new GlobalExceptionHandler()).build();
     }
 
@@ -76,8 +78,8 @@ class TaskControllerTest {
         when(service.findAll(eq(1L), any(TaskSearchRequest.class))).thenReturn(List.of(response()));
         mvc.perform(get(BASE + "/10")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.title").value("업무"));
-        mvc.perform(get(BASE).param("assigneeName", "담당자").param("status", "TODO")
-                        .param("dueDateFrom", "2026-11-10").param("overdue", "false"))
+        mvc.perform(get(BASE).queryParam("assigneeName", "담당자").queryParam("status", "TODO")
+                        .queryParam("dueDateFrom", "2026-11-10").queryParam("overdue", "false"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data[0].id").value(10));
         verify(service).findAll(1L, new TaskSearchRequest("담당자", "TODO",
                 LocalDate.of(2026, 11, 10), null, false));
@@ -117,7 +119,7 @@ class TaskControllerTest {
     @ParameterizedTest
     @MethodSource("invalidSearchParameters")
     void rejectsPresentSearchParametersWithInvalidFormat(String parameter, String value) throws Exception {
-        mvc.perform(get(BASE).param(parameter, value))
+        mvc.perform(get(BASE).queryParam(parameter, value))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"))
                 .andExpect(jsonPath("$.error.fields[0].field").value(parameter));
@@ -130,8 +132,8 @@ class TaskControllerTest {
                 LocalDate.of(2024, 2, 29), LocalDate.of(2026, 11, 20), true);
         when(service.findAll(1L, search)).thenReturn(List.of());
 
-        mvc.perform(get(BASE).param("dueDateFrom", "2024-02-29").param("dueDateTo", "2026-11-20")
-                        .param("overdue", "true"))
+        mvc.perform(get(BASE).queryParam("dueDateFrom", "2024-02-29").queryParam("dueDateTo", "2026-11-20")
+                        .queryParam("overdue", "true"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").isEmpty());
 
@@ -139,9 +141,9 @@ class TaskControllerTest {
     }
 
     @Test
-    void searchIgnoresHeadersAndFormBindingParameters() throws Exception {
+    void searchIgnoresHeadersAndBinderPrefixes() throws Exception {
         mvc.perform(get(BASE).header("status", "TODO")
-                        .param("!dueDateFrom", "2026-11-19").param("_overdue", "on"))
+                        .queryParam("!dueDateFrom", "2026-11-19").queryParam("_overdue", "on"))
                 .andExpect(status().isOk());
 
         verify(service).findAll(1L, new TaskSearchRequest(null, null, null, null, null));
@@ -167,7 +169,7 @@ class TaskControllerTest {
     void returnsEmptySearchResultAndRejectsOversizedSearchAssignee() throws Exception {
         when(service.findAll(eq(1L), any(TaskSearchRequest.class))).thenReturn(List.of());
         mvc.perform(get(BASE)).andExpect(status().isOk()).andExpect(jsonPath("$.data").isEmpty());
-        mvc.perform(get(BASE).param("assigneeName", "가".repeat(81)))
+        mvc.perform(get(BASE).queryParam("assigneeName", "가".repeat(81)))
                 .andExpect(status().isBadRequest());
     }
 
@@ -175,7 +177,7 @@ class TaskControllerTest {
     void mapsReversedSearchRangeToBadRequest() throws Exception {
         when(service.findAll(eq(1L), any(TaskSearchRequest.class)))
                 .thenThrow(new InvalidRequestException("검색 기간 오류"));
-        mvc.perform(get(BASE).param("dueDateFrom", "2026-11-20").param("dueDateTo", "2026-11-10"))
+        mvc.perform(get(BASE).queryParam("dueDateFrom", "2026-11-20").queryParam("dueDateTo", "2026-11-10"))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
     }
 
@@ -221,7 +223,7 @@ class TaskControllerTest {
     @ParameterizedTest
     @ValueSource(strings = {"", " ", "\t"})
     void rejectsEmptySearchStatusInsteadOfRemovingFilter(String value) throws Exception {
-        mvc.perform(get(BASE).param("status", value)).andExpect(status().isBadRequest())
+        mvc.perform(get(BASE).queryParam("status", value)).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
         verifyNoInteractions(service);
     }
@@ -237,7 +239,7 @@ class TaskControllerTest {
                 .andExpect(status().isCreated());
         mvc.perform(put(BASE + "/10").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk());
-        mvc.perform(get(BASE).param("status", value)).andExpect(status().isOk());
+        mvc.perform(get(BASE).queryParam("status", value)).andExpect(status().isOk());
         verify(service).create(1L, new TaskCreateRequest("업무", "", "담당자",
                 LocalDate.of(2026, 11, 10), TaskStatus.valueOf(value)));
         verify(service).update(1L, 10L, new TaskUpdateRequest("업무", "", "담당자",

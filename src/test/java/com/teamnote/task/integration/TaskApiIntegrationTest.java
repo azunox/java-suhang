@@ -101,9 +101,9 @@ class TaskApiIntegrationTest {
 
     @Test
     void rejectsInvalidSearchDatesAndMissingProjectsAndAcceptsEmptyMarkdown() throws Exception {
-        mvc.perform(get(base).param("dueDateFrom", "2026-11-20").param("dueDateTo", "2026-11-19"))
+        mvc.perform(get(base).queryParam("dueDateFrom", "2026-11-20").queryParam("dueDateTo", "2026-11-19"))
                 .andExpect(status().isBadRequest());
-        mvc.perform(get(base).param("dueDateFrom", "invalid")).andExpect(status().isBadRequest());
+        mvc.perform(get(base).queryParam("dueDateFrom", "invalid")).andExpect(status().isBadRequest());
         mvc.perform(get("/api/projects/9223372036854775807/tasks")).andExpect(status().isNotFound());
         mvc.perform(post(base).contentType(MediaType.APPLICATION_JSON).content(request("", "TODO")))
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.data.descriptionHtml").value(""));

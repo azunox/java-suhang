@@ -15,3 +15,4 @@ server:
 
 springdoc:
   paths-to-match: /api/**
+  default-produces-media-type: application/json
