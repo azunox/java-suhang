@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 
-import com.teamnote.common.controller.SearchRequestBinding;
+import com.teamnote.common.controller.SearchQuery;
 import com.teamnote.common.response.ApiResponse;
 import com.teamnote.meeting.dto.MeetingCreateRequest;
 import com.teamnote.meeting.dto.MeetingDateTimeParser;
@@ -22,7 +22,6 @@ import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.InitBinder;
-import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -30,8 +29,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import static com.teamnote.common.config.OpenApiConfiguration.RESOURCE_NOT_FOUND_REF;
+
 @RestController
 @RequestMapping("/api/projects/{projectId}/meetings")
+@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", ref = RESOURCE_NOT_FOUND_REF)
 public class MeetingController {
 
     private final MeetingService meetingService;
@@ -42,7 +44,6 @@ public class MeetingController {
 
     @InitBinder("meetingSearchRequest")
     void bindSearchDateTimes(WebDataBinder binder) {
-        SearchRequestBinding.useQueryParameters(binder);
         binder.registerCustomEditor(LocalDateTime.class, new PropertyEditorSupport() {
             @Override
             public void setAsText(String text) {
@@ -67,14 +68,20 @@ public class MeetingController {
     }
 
     @GetMapping
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200", useReturnTypeSchema = true
+    )
     public ApiResponse<List<MeetingResponse>> findAll(
             @PathVariable @Positive(message = "프로젝트 ID는 양수여야 합니다.") Long projectId,
-            @Valid @ModelAttribute @ParameterObject MeetingSearchRequest request
+            @Valid @SearchQuery @ParameterObject MeetingSearchRequest request
     ) {
         return ApiResponse.success(meetingService.findAll(projectId, request));
     }
 
     @GetMapping("/{meetingId}")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200", useReturnTypeSchema = true
+    )
     public ApiResponse<MeetingResponse> findById(
             @PathVariable @Positive(message = "프로젝트 ID는 양수여야 합니다.") Long projectId,
             @PathVariable @Positive(message = "회의 ID는 양수여야 합니다.") Long meetingId
@@ -83,6 +90,9 @@ public class MeetingController {
     }
 
     @PutMapping("/{meetingId}")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200", useReturnTypeSchema = true
+    )
     public ApiResponse<MeetingResponse> update(
             @PathVariable @Positive(message = "프로젝트 ID는 양수여야 합니다.") Long projectId,
             @PathVariable @Positive(message = "회의 ID는 양수여야 합니다.") Long meetingId,
@@ -92,6 +102,9 @@ public class MeetingController {
     }
 
     @DeleteMapping("/{meetingId}")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200", useReturnTypeSchema = true
+    )
     public ApiResponse<Void> delete(
             @PathVariable @Positive(message = "프로젝트 ID는 양수여야 합니다.") Long projectId,
             @PathVariable @Positive(message = "회의 ID는 양수여야 합니다.") Long meetingId

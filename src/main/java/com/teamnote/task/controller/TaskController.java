@@ -5,7 +5,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 
-import com.teamnote.common.controller.SearchRequestBinding;
+import com.teamnote.common.controller.SearchQuery;
 import com.teamnote.common.dto.LocalDateParser;
 import com.teamnote.common.response.ApiResponse;
 import com.teamnote.task.dto.TaskCreateRequest;
@@ -22,7 +22,6 @@ import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.InitBinder;
-import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -30,8 +29,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import static com.teamnote.common.config.OpenApiConfiguration.RESOURCE_NOT_FOUND_REF;
+
 @RestController
 @RequestMapping("/api/projects/{projectId}/tasks")
+@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", ref = RESOURCE_NOT_FOUND_REF)
 public class TaskController {
 
     private final TaskService taskService;
@@ -42,7 +44,6 @@ public class TaskController {
 
     @InitBinder("taskSearchRequest")
     void bindSearchParameters(WebDataBinder binder) {
-        SearchRequestBinding.useQueryParameters(binder);
         binder.registerCustomEditor(LocalDate.class, new PropertyEditorSupport() {
             @Override
             public void setAsText(String text) {
@@ -78,14 +79,20 @@ public class TaskController {
     }
 
     @GetMapping
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200", useReturnTypeSchema = true
+    )
     public ApiResponse<List<TaskResponse>> findAll(
             @PathVariable @Positive Long projectId,
-            @Valid @ModelAttribute @ParameterObject TaskSearchRequest request
+            @Valid @SearchQuery @ParameterObject TaskSearchRequest request
     ) {
         return ApiResponse.success(taskService.findAll(projectId, request));
     }
 
     @GetMapping("/{taskId}")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200", useReturnTypeSchema = true
+    )
     public ApiResponse<TaskResponse> findById(
             @PathVariable @Positive Long projectId,
             @PathVariable @Positive Long taskId
@@ -94,6 +101,9 @@ public class TaskController {
     }
 
     @PutMapping("/{taskId}")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200", useReturnTypeSchema = true
+    )
     public ApiResponse<TaskResponse> update(
             @PathVariable @Positive Long projectId,
             @PathVariable @Positive Long taskId,
@@ -103,6 +113,9 @@ public class TaskController {
     }
 
     @DeleteMapping("/{taskId}")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200", useReturnTypeSchema = true
+    )
     public ApiResponse<Void> delete(
             @PathVariable @Positive Long projectId,
             @PathVariable @Positive Long taskId

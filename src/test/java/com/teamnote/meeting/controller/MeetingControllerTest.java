@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 import com.teamnote.common.config.MarkdownConfiguration;
+import com.teamnote.common.controller.SearchRequestBinding;
 import com.teamnote.common.exception.GlobalExceptionHandler;
 import com.teamnote.common.service.MarkdownServiceImpl;
 import com.teamnote.meeting.entity.Meeting;
@@ -81,6 +82,7 @@ class MeetingControllerTest {
                 new MarkdownServiceImpl(config.markdownParser(), config.markdownHtmlRenderer(),
                         config.markdownHtmlCleaner()));
         mockMvc = MockMvcBuilders.standaloneSetup(new MeetingController(meetingService))
+                .setCustomArgumentResolvers(new SearchRequestBinding())
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
@@ -125,10 +127,10 @@ class MeetingControllerTest {
     }
 
     @Test
-    void searchIgnoresHeadersAndFormBindingParameters() throws Exception {
+    void searchIgnoresHeadersAndBinderPrefixes() throws Exception {
         when(projectRepository.existsById(1L)).thenReturn(true);
 
-        mockMvc.perform(get(MEETINGS_PATH, 1).param("!from", "2026-11-19T10:00:00")
+        mockMvc.perform(get(MEETINGS_PATH, 1).queryParam("!from", "2026-11-19T10:00:00")
                         .header("to", "2026-11-19T11:00:00"))
                 .andExpect(status().isOk());
 
@@ -346,7 +348,7 @@ class MeetingControllerTest {
     @ParameterizedTest
     @ValueSource(strings = {"2026-11-19T10:00:00", "2026-11-19T09:00:00"})
     void rejectsEqualOrReversedSearchRange(String to) throws Exception {
-        mockMvc.perform(get(MEETINGS_PATH, 1).param("from", "2026-11-19T10:00:00").param("to", to))
+        mockMvc.perform(get(MEETINGS_PATH, 1).queryParam("from", "2026-11-19T10:00:00").queryParam("to", to))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
         verifyNoInteractions(projectRepository, meetingRepository);
@@ -354,7 +356,7 @@ class MeetingControllerTest {
 
     @Test
     void rejectsMalformedSearchDate() throws Exception {
-        mockMvc.perform(get(MEETINGS_PATH, 1).param("from", "invalid"))
+        mockMvc.perform(get(MEETINGS_PATH, 1).queryParam("from", "invalid"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
         verifyNoInteractions(projectRepository, meetingRepository);
@@ -363,7 +365,7 @@ class MeetingControllerTest {
     @ParameterizedTest
     @ValueSource(strings = {"2026-11-19T10:00:00Z", "2026-11-19T10:00:00+09:00", "2026-02-30T10:00:00"})
     void rejectsOffsetAndInvalidCalendarSearchDates(String from) throws Exception {
-        mockMvc.perform(get(MEETINGS_PATH, 1).param("from", from))
+        mockMvc.perform(get(MEETINGS_PATH, 1).queryParam("from", from))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
         verifyNoInteractions(projectRepository, meetingRepository);
@@ -375,7 +377,7 @@ class MeetingControllerTest {
             throws Exception {
         lenient().when(projectRepository.existsById(1L)).thenReturn(true);
 
-        mockMvc.perform(get(MEETINGS_PATH, 1).param(parameter, value))
+        mockMvc.perform(get(MEETINGS_PATH, 1).queryParam(parameter, value))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"))
@@ -393,7 +395,7 @@ class MeetingControllerTest {
         when(projectRepository.existsById(1L)).thenReturn(true);
         when(meetingRepository.search(1L, from, to)).thenReturn(List.of());
 
-        mockMvc.perform(get(MEETINGS_PATH, 1).param(parameter, "2026-11-19T10:00:00"))
+        mockMvc.perform(get(MEETINGS_PATH, 1).queryParam(parameter, "2026-11-19T10:00:00"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data").isEmpty());

@@ -1,9 +1,11 @@
 package com.teamnote.project.controller;
 
+import java.net.URI;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Stream;
 
+import com.teamnote.common.controller.SearchRequestBinding;
 import com.teamnote.common.exception.ConflictException;
 import com.teamnote.common.exception.GlobalExceptionHandler;
 import com.teamnote.common.exception.InvalidRequestException;
@@ -23,10 +25,13 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockPart;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
@@ -36,6 +41,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -64,6 +70,7 @@ class ProjectControllerTest {
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(new ProjectController(projectService))
+                .setCustomArgumentResolvers(new SearchRequestBinding())
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
@@ -188,18 +195,31 @@ class ProjectControllerTest {
     }
 
     @Test
-    void searchIgnoresHeadersAndFormBindingParameters() throws Exception {
-        mockMvc.perform(get("/api/projects").header("name", "REST").param("!status", "PLANNED"))
+    void searchIgnoresHeadersAndBinderPrefixes() throws Exception {
+        mockMvc.perform(get("/api/projects").header("name", "REST").queryParam("!status", "PLANNED"))
                 .andExpect(status().isOk());
 
         verify(projectService).findAll(new ProjectSearchRequest(null, null));
     }
 
     @Test
-    void returnsEmptyArrayWhenNoProjectsExist() throws Exception {
-        when(projectService.findAll(new ProjectSearchRequest("REST", "PLANNED"))).thenReturn(List.of());
+    void searchUsesOnlyUrlQueryWhenMultipartBodyContainsSearchFields() throws Exception {
+        MockPart statusPart = new MockPart("status", "COMPLETED".getBytes(UTF_8));
 
-        mockMvc.perform(get("/api/projects").param("name", "REST").param("status", "PLANNED"))
+        mockMvc.perform(multipart(HttpMethod.GET, "/api/projects").part(statusPart))
+                .andExpect(status().isOk());
+        mockMvc.perform(multipart(HttpMethod.GET, "/api/projects").part(statusPart).queryParam("status", "PLANNED"))
+                .andExpect(status().isOk());
+
+        verify(projectService).findAll(new ProjectSearchRequest(null, null));
+        verify(projectService).findAll(new ProjectSearchRequest(null, "PLANNED"));
+    }
+
+    @Test
+    void returnsEmptyArrayWhenNoProjectsExist() throws Exception {
+        when(projectService.findAll(new ProjectSearchRequest("팀 +&=", "PLANNED"))).thenReturn(List.of());
+
+        mockMvc.perform(get(URI.create("/api/projects?name=%ED%8C%80+%2B%26%3D&status=PLANNED")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data").isArray())
@@ -209,7 +229,7 @@ class ProjectControllerTest {
     @ParameterizedTest
     @ValueSource(strings = {"UNKNOWN", "", "   "})
     void rejectsInvalidSearchStatus(String projectStatus) throws Exception {
-        mockMvc.perform(get("/api/projects").param("status", projectStatus))
+        mockMvc.perform(get("/api/projects").queryParam("status", projectStatus))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"))
                 .andExpect(jsonPath("$.error.fields[0].field").value("status"));
@@ -218,8 +238,17 @@ class ProjectControllerTest {
     }
 
     @Test
+    void rejectsInvalidUtf8InSearchName() throws Exception {
+        mockMvc.perform(get(URI.create("/api/projects?name=%FF")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"));
+
+        verifyNoInteractions(projectService);
+    }
+
+    @Test
     void rejectsTooLongSearchName() throws Exception {
-        mockMvc.perform(get("/api/projects").param("name", "가".repeat(121)))
+        mockMvc.perform(get("/api/projects").queryParam("name", "가".repeat(121)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("INVALID_REQUEST"))
                 .andExpect(jsonPath("$.error.fields[0].field").value("name"));
